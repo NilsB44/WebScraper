@@ -1,0 +1,5 @@
+google-genai
+crawl4ai
+googlesearch-python
+requests
+pydantic
