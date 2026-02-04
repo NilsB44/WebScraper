@@ -10,10 +10,9 @@ from pydantic import BaseModel
 from datetime import datetime
 
 # --- ⚙️ USER CONFIGURATION -----------------------
-# Specific search for XTZ 12.17 Edge across major EU sites
-# SEARCH_QUERY = 'intitle:"XTZ 12.17 Edge" (site:blocket.se OR site:tradera.com OR site:kleinanzeigen.de OR site:ebay.de OR site:hifitorget.se OR site:marktplaats.nl)'
-SEARCH_QUERY='subwoofer sie:blocket.se'
-NTFY_TOPIC = "gemini_alerts_change_me_123" # <--- MAKE SURE THIS IS YOUR TOPIC!
+# ✅ TYPO FIXED HERE: 'site:' instead of 'sie:'
+SEARCH_QUERY='subwoofer site:blocket.se' 
+NTFY_TOPIC = "gemini_alerts_change_me_123" 
 HISTORY_FILE = "seen_items.json"
 # -------------------------------------------------
 
@@ -40,7 +39,6 @@ def save_history(history):
         json.dump(history, f, indent=2)
 
 def git_commit_changes():
-    """Commits the updated history file back to the repo"""
     try:
         subprocess.run(["git", "config", "--global", "user.name", "Scraper Bot"], check=True)
         subprocess.run(["git", "config", "--global", "user.email", "bot@github.com"], check=True)
@@ -87,6 +85,7 @@ async def main():
                     continue
 
                 # 3. ANALYSIS PHASE
+                # I removed 'response2' - only this one is needed for the test
                 response = client.models.generate_content(
                     model="gemini-2.0-flash",
                     contents=f"""
@@ -104,23 +103,6 @@ async def main():
                     },
                 )
                 
-                response2 = client.models.generate_content(
-                    model="gemini-2.0-flash",
-                    contents=f"""
-                    Analyze this webpage: {result.markdown[:15000]}
-                    
-                    Target Item: "XTZ 12.17 Edge" subwoofer.
-                    Rules:
-                    1. MUST be the specific "Edge" model (not the old 12.17).
-                    2. MUST be for sale (ignore 'wanted' ads).
-                    3. Extract the price if visible.
-                    """,
-                    config={
-                        "response_mime_type": "application/json",
-                        "response_schema": ProductCheck,
-                    },
-                )
-                
                 analysis = response.parsed
                 
                 # 4. NOTIFICATION PHASE
@@ -131,7 +113,7 @@ async def main():
                     requests.post(
                         f"https://ntfy.sh/{NTFY_TOPIC}", 
                         data=message.encode("utf-8"),
-                        headers={"Title": "XTZ Found! 🔊", "Click": analysis.url}
+                        headers={"Title": "Subwoofer Found! 🔊", "Click": analysis.url}
                     )
                     
                     # Add to history so we don't alert again
@@ -139,9 +121,6 @@ async def main():
                     found_something_new = True
                 else:
                     print("❌ Not a match.")
-                    # Optional: Add non-matches to history too so we don't check them again?
-                    # For now, we only block IF we notified, but you can uncomment below to block everything checked
-                    # seen_urls.append(url) 
 
             except Exception as e:
                 print(f"⚠️ Error on {url}: {e}")
