@@ -11,7 +11,8 @@ from datetime import datetime
 
 # --- ⚙️ USER CONFIGURATION -----------------------
 # Specific search for XTZ 12.17 Edge across major EU sites
-SEARCH_QUERY = 'intitle:"XTZ 12.17 Edge" (site:blocket.se OR site:tradera.com OR site:kleinanzeigen.de OR site:ebay.de OR site:hifitorget.se OR site:marktplaats.nl)'
+# SEARCH_QUERY = 'intitle:"XTZ 12.17 Edge" (site:blocket.se OR site:tradera.com OR site:kleinanzeigen.de OR site:ebay.de OR site:hifitorget.se OR site:marktplaats.nl)'
+SEARCH_QUERY='subwoofer sie:blocket.se'
 NTFY_TOPIC = "gemini_alerts_change_me_123" # <--- MAKE SURE THIS IS YOUR TOPIC!
 HISTORY_FILE = "seen_items.json"
 # -------------------------------------------------
@@ -87,6 +88,23 @@ async def main():
 
                 # 3. ANALYSIS PHASE
                 response = client.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=f"""
+                    Analyze this webpage: {result.markdown[:15000]}
+                    
+                    Task: Look for ANY subwoofer. 
+                    Rules:
+                    1. If it is a subwoofer, set found_item to True.
+                    2. Ignore 'wanted' ads.
+                    3. Extract the price.
+                    """,
+                    config={
+                        "response_mime_type": "application/json",
+                        "response_schema": ProductCheck,
+                    },
+                )
+                
+                response2 = client.models.generate_content(
                     model="gemini-2.0-flash",
                     contents=f"""
                     Analyze this webpage: {result.markdown[:15000]}
