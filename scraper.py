@@ -3,15 +3,14 @@ import os
 import json
 import requests
 import subprocess
-from googlesearch import search
+from duckduckgo_search import DDGS  # <--- NEW LIBRARY
 from crawl4ai import AsyncWebCrawler
 from google import genai
 from pydantic import BaseModel
-from datetime import datetime
 
 # --- ⚙️ USER CONFIGURATION -----------------------
-# ✅ TYPO FIXED HERE: 'site:' instead of 'sie:'
-SEARCH_QUERY='subwoofer site:blocket.se' 
+# TEST QUERY: Broad search on Blocket to verify notifications work
+SEARCH_QUERY = 'subwoofer site:blocket.se' 
 NTFY_TOPIC = "gemini_alerts_change_me_123" 
 HISTORY_FILE = "seen_items.json"
 # -------------------------------------------------
@@ -50,21 +49,24 @@ def git_commit_changes():
         print(f"⚠️ Could not push history: {e}")
 
 async def main():
-    print(f"🕵️ Agent starting search for: {SEARCH_QUERY}")
+    print(f"🕵️ Agent starting DuckDuckGo search for: {SEARCH_QUERY}")
     
     seen_urls = load_history()
     print(f"📚 Memory loaded: {len(seen_urls)} items previously seen.")
 
-    # 1. DISCOVERY PHASE
+    # 1. DISCOVERY PHASE (DuckDuckGo)
+    found_urls = []
     try:
-        # Search for more results (10) since we are filtering specifically
-        found_urls = list(search(SEARCH_QUERY, num_results=10, advanced=True))
+        # We use the DDGS library to search. "max_results" replaces "num_results"
+        results = DDGS().text(SEARCH_QUERY, max_results=10)
+        if results:
+            found_urls = [r['href'] for r in results]
     except Exception as e:
         print(f"⚠️ Search failed: {e}")
         return
 
     # Filter out URLs we have already seen
-    new_urls = [r.url for r in found_urls if r.url not in seen_urls]
+    new_urls = [url for url in found_urls if url not in seen_urls]
     
     if not new_urls:
         print("💤 No new links found since last run.")
@@ -82,18 +84,19 @@ async def main():
                 result = await crawler.arun(url=url)
                 
                 if not result.success:
+                    print(f"⚠️ Failed to load content for {url}")
                     continue
 
                 # 3. ANALYSIS PHASE
-                # I removed 'response2' - only this one is needed for the test
                 response = client.models.generate_content(
                     model="gemini-2.0-flash",
                     contents=f"""
-                    Analyze this webpage: {result.markdown[:15000]}
+                    Analyze this webpage content:
+                    {result.markdown[:15000]}
                     
-                    Task: Look for ANY subwoofer. 
+                    Task: Check if this is a subwoofer for sale.
                     Rules:
-                    1. If it is a subwoofer, set found_item to True.
+                    1. Set 'found_item' to True if it is a subwoofer.
                     2. Ignore 'wanted' ads.
                     3. Extract the price.
                     """,
@@ -113,14 +116,14 @@ async def main():
                     requests.post(
                         f"https://ntfy.sh/{NTFY_TOPIC}", 
                         data=message.encode("utf-8"),
-                        headers={"Title": "Subwoofer Found! 🔊", "Click": analysis.url}
+                        headers={"Title": "Subwoofer Alert! 🔊", "Click": analysis.url}
                     )
                     
                     # Add to history so we don't alert again
                     seen_urls.append(url)
                     found_something_new = True
                 else:
-                    print("❌ Not a match.")
+                    print(f"❌ Not a match: {url}")
 
             except Exception as e:
                 print(f"⚠️ Error on {url}: {e}")
