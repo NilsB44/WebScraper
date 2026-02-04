@@ -1,6 +1,5 @@
 google-genai
 crawl4ai
-duckduckgo-search
 requests
 pydantic
 playwright
