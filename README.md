@@ -23,7 +23,7 @@ The project follows a modular service-oriented architecture:
 ## 🛠️ Setup & Installation
 
 ### 1. Prerequisites
-- Python 3.10+
+- [uv](https://docs.astral.sh/uv/) installed.
 - A Google Gemini API Key.
 
 ### 2. Installation
@@ -32,15 +32,11 @@ The project follows a modular service-oriented architecture:
 git clone <your-repo-url>
 cd WebScraper
 
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Sync dependencies (creates virtual environment automatically)
+uv sync
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Install Playwright browsers for Crawl4AI
-playwright install
+# Install Playwright browsers
+uv run playwright install --with-deps
 ```
 
 ### 3. Configuration
@@ -52,9 +48,9 @@ NTFY_TOPIC=your_secret_topic
 ```
 
 ## 🤖 Usage
-Run the scraper manually:
+Run the scraper using uv:
 ```bash
-python scraper.py
+uv run scraper.py
 ```
 
 ## ☁️ CI/CD (GitHub Actions)

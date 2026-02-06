@@ -1,7 +1,0 @@
-google-genai
-crawl4ai
-requests
-pydantic
-pydantic-settings
-python-dotenv
-playwright

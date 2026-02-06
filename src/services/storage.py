@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import subprocess
-from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -10,11 +9,11 @@ class HistoryManager:
     def __init__(self, file_path: str):
         self.file_path = file_path
 
-    def load(self) -> List[str]:
+    def load(self) -> list[str]:
         """Loads the history of seen URLs."""
         if os.path.exists(self.file_path):
             try:
-                with open(self.file_path, "r", encoding="utf-8") as f:
+                with open(self.file_path, encoding="utf-8") as f:
                     return json.load(f)
             except json.JSONDecodeError:
                 logger.warning(f"[WARNING] History file {self.file_path} corrupted. Starting fresh.")
@@ -24,7 +23,7 @@ class HistoryManager:
                 return []
         return []
 
-    def save(self, history: List[str]):
+    def save(self, history: list[str]):
         """Saves the history of seen URLs."""
         try:
             with open(self.file_path, "w", encoding="utf-8") as f:
@@ -38,7 +37,7 @@ class GitManager:
         self.user_name = user_name
         self.user_email = user_email
 
-    def _run_git_command(self, args: List[str]) -> bool:
+    def _run_git_command(self, args: list[str]) -> bool:
         try:
             subprocess.run(["git"] + args, check=True, capture_output=True, text=True)
             return True
@@ -52,9 +51,9 @@ class GitManager:
     def has_changes(self) -> bool:
         try:
             result = subprocess.run(
-                ["git", "status", "--porcelain", self.file_path], 
-                capture_output=True, 
-                text=True, 
+                ["git", "status", "--porcelain", self.file_path],
+                capture_output=True,
+                text=True,
                 check=True
             )
             return bool(result.stdout.strip())
@@ -70,7 +69,7 @@ class GitManager:
         # Configure local user if not present (optional, but good for CI)
         self._run_git_command(["config", "user.name", self.user_name])
         self._run_git_command(["config", "user.email", self.user_email])
-        
+
         if self._run_git_command(["add", self.file_path]):
             if self._run_git_command(["commit", "-m", message]):
                 if self._run_git_command(["push"]):
@@ -81,3 +80,4 @@ class GitManager:
                 logger.error("❌ Failed to commit changes.")
         else:
             logger.error("❌ Failed to stage changes.")
+

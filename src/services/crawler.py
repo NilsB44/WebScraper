@@ -1,12 +1,13 @@
-import logging
 import asyncio
-from typing import Optional
-from urllib.parse import urljoin, urlparse
+import logging
+from urllib.parse import urljoin
 
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 import requests
+from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig
 
 logger = logging.getLogger(__name__)
+
+MAX_CONTENT_LENGTH = 20000
 
 class ContentFetcher:
     def __init__(self, headless: bool = True):
@@ -18,12 +19,15 @@ class ContentFetcher:
             cache_mode=CacheMode.BYPASS,
             wait_until="networkidle",
             delay_before_return_html=5.0,
-            magic_mode=True, 
+            magic_mode=True,
         )
 
-    async def fetch_ad_content(self, crawler: AsyncWebCrawler, url: str) -> Optional[str]:
+    async def fetch_ad_content(self, crawler: AsyncWebCrawler, url: str) -> str | None:
         logger.info(f"📥 Fetching content: {url}")
-        
+
+        # Use asyncio.sleep instead of time.sleep in an async function
+        await asyncio.sleep(1)
+
         # Method 1: Crawl4AI
         try:
             result = await crawler.arun(
@@ -32,11 +36,12 @@ class ContentFetcher:
                 delay_before_return_html=8.0,
                 bypass_cache=True
             )
-            # Prioritize markdown, fallback to html, but check for validity
-            content = result.markdown or result.html
-            
-            if content and len(content) > 500:
-                return content[:20000] # Limit length early to save tokens/memory
+            # Use meaningful variable names
+            extracted_content = result.markdown or result.html
+
+            if extracted_content and len(extracted_content) > 500:
+                # Use named constant instead of magic number
+                return extracted_content[:MAX_CONTENT_LENGTH]
         except Exception as e:
             logger.warning(f"⚠️ Crawler failed for {url}: {e}")
 
@@ -48,10 +53,13 @@ class ContentFetcher:
 
         return None
 
-    def _fetch_with_requests(self, url: str) -> Optional[str]:
+    def _fetch_with_requests(self, url: str) -> str | None:
         try:
             headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                ),
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
                 "Accept-Language": "en-US,en;q=0.5",
             }
@@ -75,7 +83,7 @@ class ContentFetcher:
         """Filters obviously bad links."""
         if len(href) < 20:
             return False
-        
+
         # Common patterns for ad detail pages
         keywords = ["/annons/", "/item/", "/s-anzeige/", "/advert/", "/itm/", "id="]
         return any(x in href for x in keywords)
