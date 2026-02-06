@@ -1,0 +1,7 @@
+name: Review
+on: [pull_request]
+jobs:
+  call-review:
+    uses: your-username/my-infra/.github/workflows/reusable-reviewer.yml@main
+    secrets:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
