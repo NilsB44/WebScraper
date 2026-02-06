@@ -1,0 +1,19 @@
+{
+  "name": "WebScraper Dev Environment",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "ms-python.pylint",
+        "njpwerner.autodocstring"
+      ]
+    }
+  },
+  "postCreateCommand": "pip install -r requirements.txt && playwright install --with-deps",
+  "remoteUser": "vscode"
+}

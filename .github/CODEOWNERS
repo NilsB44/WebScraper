@@ -1,0 +1,14 @@
+# This file is used to define code owners for different parts of the repository.
+# Code owners are automatically requested for review when someone opens a pull request.
+
+# Default owner for everything
+* @NilsB44
+
+# Python Source Code
+*.py @NilsB44
+src/ @NilsB44
+
+# GitHub Actions & Configuration
+.github/ @NilsB44
+.devcontainer/ @NilsB44
+requirements.txt @NilsB44
