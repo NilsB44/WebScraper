@@ -17,7 +17,7 @@ class HistoryManager:
                 with open(self.file_path, "r", encoding="utf-8") as f:
                     return json.load(f)
             except json.JSONDecodeError:
-                logger.warning(f"⚠️ History file {self.file_path} corrupted. Starting fresh.")
+                logger.warning(f"[WARNING] History file {self.file_path} corrupted. Starting fresh.")
                 return []
             except Exception as e:
                 logger.error(f"Error loading history: {e}")
@@ -43,8 +43,7 @@ class GitManager:
             subprocess.run(["git"] + args, check=True, capture_output=True, text=True)
             return True
         except subprocess.CalledProcessError as e:
-            logger.error(f"Git command failed: git {' '.join(args)}
-Error: {e.stderr}")
+            logger.error(f"Git command failed: git {' '.join(args)}\nError: {e.stderr}")
             return False
         except Exception as e:
             logger.error(f"Unexpected git error: {e}")
@@ -67,7 +66,7 @@ Error: {e.stderr}")
             logger.info("No changes to commit.")
             return
 
-        logger.info("💾 Committing changes to Git...")
+        logger.info("[GIT] Committing changes to Git...")
         # Configure local user if not present (optional, but good for CI)
         self._run_git_command(["config", "user.name", self.user_name])
         self._run_git_command(["config", "user.email", self.user_email])
@@ -75,7 +74,7 @@ Error: {e.stderr}")
         if self._run_git_command(["add", self.file_path]):
             if self._run_git_command(["commit", "-m", message]):
                 if self._run_git_command(["push"]):
-                    logger.info("✅ History updated and pushed to repo.")
+                    logger.info("[GIT] History updated and pushed to repo.")
                 else:
                     logger.error("❌ Failed to push changes.")
             else:

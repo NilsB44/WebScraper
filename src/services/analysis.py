@@ -36,7 +36,7 @@ class GeminiAnalyzer:
             except Exception as e:
                 err = str(e).lower()
                 if any(x in err for x in ["429", "quota", "503", "overload"]):
-                    logger.warning(f"   ⚠️ {model} quota/overload. Trying next...")
+                    logger.warning(f"   [QUOTA] {model} quota/overload. Trying next...")
                     continue
                 elif "404" in err:
                     # Model not found, skip quietly
@@ -70,20 +70,11 @@ class GeminiAnalyzer:
         if not ads:
             return []
             
-        prompt = f"I am looking for: {item_name}
-
-Here are {len(ads)} advertisements to check:
-
-"
+        prompt = f"I am looking for: {item_name}\n\nHere are {len(ads)} advertisements to check:\n\n"
         for i, ad in enumerate(ads):
             # Strict truncation to avoid token limits
-            clean_content = ad['content'][:2000].replace("
-", " ") 
-            prompt += f"--- AD #{i+1} ({ad['site']}) ---
-URL: {ad['url']}
-CONTENT: {clean_content}
-
-"
+            clean_content = ad['content'][:2000].replace("\n", " ") 
+            prompt += f"--- AD #{i+1} ({ad['site']}) ---\nURL: {ad['url']}\nCONTENT: {clean_content}\n\n"
         
         prompt += """
         --------------------------------------------------

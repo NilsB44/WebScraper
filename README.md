@@ -1,10 +1,64 @@
-# 🕵️ Agentic Web Scraper (Gemini + GitHub Actions)
+# 🕵️ Agentic Web Scraper (Gemini + Crawler4AI)
 
-This tool automatically searches the web for specific items (like second-hand subwoofers) and sends a push notification to your phone if it finds a good deal. It runs once a day automatically via GitHub Actions.
+A high-performance, AI-driven web scraper designed to hunt for specific items across multiple European marketplaces. It leverages **Gemini 2.0/Flash** for intelligent content analysis and **Crawl4AI** for robust web harvesting.
 
-## ⚙️ Quick Configuration
+## 🚀 Key Features
+- **Intelligent Analysis:** Uses LLMs to verify if an ad matches your exact search criteria (color, model, condition).
+- **Multi-Source:** Automatically generates search URLs for Blocket, Tradera, Kleinanzeigen, Hifitorget, eBay DE, DBA, and Finn.no.
+- **Smart Throttling:** Built-in delays and quota management for Gemini API limits.
+- **Push Notifications:** Instant alerts via [ntfy.sh](https://ntfy.sh).
+- **History Tracking:** Remembers seen ads to avoid duplicate notifications.
 
-### 1. Change What to Search For
-Open `scraper.py` and edit this line at the top:
-```python
-SEARCH_QUERY = "Second hand active subwoofer sale europe site:blocket.se OR site:kleinanzeigen.de"
+## 📁 Project Structure
+The project follows a modular service-oriented architecture:
+- `scraper.py`: The main orchestrator (entry point).
+- `src/config.py`: Configuration management via Pydantic Settings.
+- `src/models.py`: Shared Pydantic data models for structured AI output.
+- `src/services/`:
+  - `crawler.py`: Web harvesting logic using Crawl4AI and Requests fallback.
+  - `analysis.py`: Gemini API integration and prompt engineering.
+  - `notification.py`: ntfy.sh messaging service.
+  - `storage.py`: History persistence and Git auto-commit logic.
+
+## 🛠️ Setup & Installation
+
+### 1. Prerequisites
+- Python 3.10+
+- A Google Gemini API Key.
+
+### 2. Installation
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd WebScraper
+
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install Playwright browsers for Crawl4AI
+playwright install
+```
+
+### 3. Configuration
+Create a `.env` file in the root directory:
+```env
+GEMINI_API_KEY=your_key_here
+ITEM_NAME="XTZ 12.17 Edge Subwoofer"
+NTFY_TOPIC=your_secret_topic
+```
+
+## 🤖 Usage
+Run the scraper manually:
+```bash
+python scraper.py
+```
+
+## ☁️ CI/CD (GitHub Actions)
+The scraper is configured to run daily via `.github/workflows/daily_scan.yml`. It automatically commits updated history back to the repository to ensure no duplicate alerts across runs.
+
+---
+*Created with ❤️ by Nils & Gemini*
