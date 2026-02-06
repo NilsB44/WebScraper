@@ -53,8 +53,21 @@ Run the scraper using uv:
 uv run scraper.py
 ```
 
+## 🛠️ Development
+The project uses [Ruff](https://docs.astral.sh/ruff/) for linting/formatting and [mypy](https://mypy.readthedocs.io/) for type checking.
+
+```bash
+# Linting and Formatting
+uv run ruff check .
+uv run ruff format .
+
+# Type Checking
+uv run mypy .
+```
+
 ## ☁️ CI/CD (GitHub Actions)
 The scraper is configured to run daily via `.github/workflows/daily_scan.yml`. It automatically commits updated history back to the repository to ensure no duplicate alerts across runs.
 
 ---
 *Created with ❤️ by Nils & Gemini*
+
