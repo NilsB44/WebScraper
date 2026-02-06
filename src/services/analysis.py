@@ -1,8 +1,10 @@
 import logging
 import time
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 from google import genai
-from src.models import SearchURLGenerator, SearchPageSource, BatchProductCheck, ProductCheck
+
+from src.models import BatchProductCheck, ProductCheck, SearchPageSource, SearchURLGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -12,15 +14,15 @@ class GeminiAnalyzer:
             raise ValueError("GEMINI_API_KEY is missing!")
         self.client = genai.Client(api_key=api_key)
 
-    def generate_content_safe(self, prompt: str, schema: Any) -> Optional[Any]:
+    def generate_content_safe(self, prompt: str, schema: Any) -> Any | None:
         """Tries multiple models to generate content, handling quotas."""
         models_to_try = [
-            "gemini-2.0-flash", 
+            "gemini-2.0-flash",
             "gemini-1.5-flash-002",
-            "gemini-2.5-flash-lite", 
+            "gemini-2.5-flash-lite",
             "gemini-3-flash-preview"
         ]
-        
+
         for model in models_to_try:
             try:
                 time.sleep(2) # Basic throttling
@@ -42,10 +44,10 @@ class GeminiAnalyzer:
                     # Model not found, skip quietly
                     continue
                 logger.error(f"   ❌ Error with {model}: {e}")
-        
+
         return None
 
-    def get_search_urls(self, item_name: str, target_sites: List[str]) -> List[SearchPageSource]:
+    def get_search_urls(self, item_name: str, target_sites: list[str]) -> list[SearchPageSource]:
         prompt = f"""
         I want to buy a "{item_name}".
         Generate direct search result URLs for: {', '.join(target_sites)}.
@@ -66,16 +68,16 @@ class GeminiAnalyzer:
             return response.parsed.search_pages
         return []
 
-    def analyze_batch(self, item_name: str, ads: List[Dict[str, str]]) -> List[ProductCheck]:
+    def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck]:
         if not ads:
             return []
-            
+
         prompt = f"I am looking for: {item_name}\n\nHere are {len(ads)} advertisements to check:\n\n"
         for i, ad in enumerate(ads):
             # Strict truncation to avoid token limits
-            clean_content = ad['content'][:2000].replace("\n", " ") 
+            clean_content = ad['content'][:2000].replace("\n", " ")
             prompt += f"--- AD #{i+1} ({ad['site']}) ---\nURL: {ad['url']}\nCONTENT: {clean_content}\n\n"
-        
+
         prompt += """
         --------------------------------------------------
         INSTRUCTIONS:
@@ -87,7 +89,7 @@ class GeminiAnalyzer:
         4. 'price': The price with currency.
         5. 'reasoning': Brief explanation.
         """
-        
+
         response = self.generate_content_safe(prompt, BatchProductCheck)
         if response and response.parsed:
             return response.parsed.results

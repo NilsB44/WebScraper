@@ -1,6 +1,6 @@
 import logging
+
 import requests
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -9,9 +9,9 @@ class NotificationService:
         self.topic = topic
         self.base_url = f"https://ntfy.sh/{topic}"
 
-    def send_notification(self, message: str, title: str = "Scraper Notification", 
-                          priority: str = "default", click_url: Optional[str] = None, 
-                          tags: Optional[str] = None) -> bool:
+    def send_notification(self, message: str, title: str = "Scraper Notification",
+                          priority: str = "default", click_url: str | None = None,
+                          tags: str | None = None) -> bool:
         """Sends a notification to the configured ntfy topic."""
         headers = {
             "Title": title,
@@ -45,9 +45,9 @@ class NotificationService:
 
     def notify_match(self, item_name: str, price: str, url: str):
         self.send_notification(
-            message=f"Found: {item_name}
+            message=f"""Found: {item_name}
 💰 {price}
-🔗 {url}",
+🔗 {url}""",
             title="Deal Found!",
             click_url=url,
             tags="loudspeaker,moneybag"

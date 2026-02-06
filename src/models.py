@@ -1,12 +1,13 @@
-from typing import List
+
 from pydantic import BaseModel, Field
+
 
 class SearchPageSource(BaseModel):
     site_name: str
     search_url: str
 
 class SearchURLGenerator(BaseModel):
-    search_pages: List[SearchPageSource]
+    search_pages: list[SearchPageSource]
 
 class ProductCheck(BaseModel):
     url: str
@@ -16,7 +17,7 @@ class ProductCheck(BaseModel):
     reasoning: str = Field(description="Brief explanation of why this matches or not")
 
 class BatchProductCheck(BaseModel):
-    results: List[ProductCheck]
+    results: list[ProductCheck]
 
 class AdContent(BaseModel):
     url: str

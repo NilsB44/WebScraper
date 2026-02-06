@@ -8,12 +8,14 @@
     "vscode": {
       "extensions": [
         "ms-python.python",
-        "ms-python.black-formatter",
-        "ms-python.pylint",
+        "charliermarsh.ruff",
         "njpwerner.autodocstring"
       ]
     }
   },
-  "postCreateCommand": "pip install --no-cache-dir -r requirements.txt && python3 -m playwright install --with-deps",
+  "features": {
+    "ghcr.io/astral-sh/uv-devcontainer:0": {}
+  },
+  "postCreateCommand": "uv sync && uv run playwright install --with-deps",
   "remoteUser": "vscode"
 }
