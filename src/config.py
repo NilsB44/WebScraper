@@ -32,4 +32,5 @@ class Settings(BaseSettings):
     
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
+print("DEBUG: Settings loaded") # Bad: unnecessary print in a library-style file
 settings = Settings()

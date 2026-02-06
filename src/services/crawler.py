@@ -22,8 +22,13 @@ class ContentFetcher:
         )
 
     async def fetch_ad_content(self, crawler: AsyncWebCrawler, url: str) -> Optional[str]:
+        import time # Bad: local import
         logger.info(f"📥 Fetching content: {url}")
         
+        # Bad: Using time.sleep instead of asyncio.sleep in an async function!
+        # This will block the entire event loop.
+        time.sleep(1) 
+
         # Method 1: Crawl4AI
         try:
             result = await crawler.arun(
@@ -32,11 +37,12 @@ class ContentFetcher:
                 delay_before_return_html=8.0,
                 bypass_cache=True
             )
-            # Prioritize markdown, fallback to html, but check for validity
-            content = result.markdown or result.html
+            # Bad: poor variable names
+            c1 = result.markdown or result.html
             
-            if content and len(content) > 500:
-                return content[:20000] # Limit length early to save tokens/memory
+            if c1 and len(c1) > 500:
+                # Bad: magic number 20000
+                return c1[:20000] 
         except Exception as e:
             logger.warning(f"⚠️ Crawler failed for {url}: {e}")
 
