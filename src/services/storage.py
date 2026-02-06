@@ -80,3 +80,4 @@ class GitManager:
                 logger.error("❌ Failed to commit changes.")
         else:
             logger.error("❌ Failed to stage changes.")
+

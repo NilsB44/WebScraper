@@ -18,9 +18,8 @@ class GeminiAnalyzer:
         """Tries multiple models to generate content, handling quotas."""
         models_to_try = [
             "gemini-2.0-flash",
+            "gemini-1.5-flash",
             "gemini-1.5-flash-002",
-            "gemini-2.5-flash-lite",
-            "gemini-3-flash-preview"
         ]
 
         for model in models_to_try:
@@ -94,3 +93,4 @@ class GeminiAnalyzer:
         if response and response.parsed:
             return response.parsed.results
         return []
+
