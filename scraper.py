@@ -58,26 +58,31 @@ async def main():
                     logger.warning("⚠️ Failed to load list page")
                     continue
 
-                candidates = []
-                # Check internal links
+                all_links = []
                 if result.links and "internal" in result.links:
-                    for link in result.links["internal"]:
-                        href = link.get("href", "")
-                        full_url = fetcher.fix_relative_url(page.search_url, href)
+                    all_links = [l.get("href", "") for l in result.links["internal"]]
+                
+                total_found = len(all_links)
+                ad_candidates = []
+                
+                for href in all_links:
+                    full_url = fetcher.fix_relative_url(page.search_url, href)
+                    if fetcher.is_valid_ad_link(full_url):
+                        ad_candidates.append(full_url)
+                
+                ad_candidates = list(set(ad_candidates)) # Deduplicate URLs
+                irrelevant_count = total_found - len(ad_candidates)
+                
+                new_candidates = [c for c in ad_candidates if c not in seen_urls]
+                seen_count = len(ad_candidates) - len(new_candidates)
 
-                        if fetcher.is_valid_ad_link(full_url):
-                            candidates.append(full_url)
-
-                unique_candidates = list(set(candidates))
-                new_candidates = [c for c in unique_candidates if c not in seen_urls]
-                skipped_count = len(unique_candidates) - len(new_candidates)
+                logger.info(f"   📊 Results: {total_found} links found | {irrelevant_count} irrelevant | {seen_count} already seen | {len(new_candidates)} NEW ads")
 
                 if not new_candidates:
-                    logger.info(f"   -> No new ads found ({skipped_count} skipped).")
                     continue
 
                 num_to_check = min(len(new_candidates), 5)
-                logger.info(f"   -> Found {len(new_candidates)} new ads ({skipped_count} skipped). Queuing TOP {num_to_check}...")
+                logger.info(f"   -> Queuing TOP {num_to_check} for analysis...")
 
                 for ad_url in new_candidates[:num_to_check]:
                     content = await fetcher.fetch_ad_content(crawler, ad_url)
