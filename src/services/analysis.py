@@ -19,12 +19,13 @@ class GeminiAnalyzer:
     def _sanitize_input(self, text: str, max_length: int = 200) -> str:
         """
         Sanitize input using an allow-list of safe characters.
-        Allows alphanumeric, common punctuation, and product-relevant symbols (&, +, /, currency).
+        Allows alphanumeric, common punctuation, and product-relevant symbols.
         """
         if not text:
             return ""
-        # Broadened allow-list: alphanumeric, whitespace, and & + / . , - ! ? ( ) @ # $ € £ kr
-        clean = re.sub(r"[^a-zA-Z0-9\s\&\+\/\.\,\-\!\?\(\)\@\#\$\€\£\kr]", "", text)
+        # Allow-list: alphanumeric, whitespace, and & + / . , ! ? ( ) @ # $ € £ k r and -
+        # Hyphen is at the end to avoid being interpreted as a range.
+        clean = re.sub(r"[^a-zA-Z0-9\s&+/.,!?()@#$€£kr-]", "", text)
         return clean[:max_length].strip()
 
     async def generate_content_safe(self, prompt: str, schema: Type[BaseModel]) -> Any | None:
@@ -106,8 +107,8 @@ Here are {len(ads)} advertisements to check:
 """
         for i, ad in enumerate(ads):
             # Sanitize all external fields
-            clean_url = self._sanitize_input(ad["url"], max_length=500)
-            clean_content = self._sanitize_input(ad["content"], max_length=2000)
+            clean_url = self._sanitize_input(ad['url'], max_length=500)
+            clean_content = self._sanitize_input(ad['content'], max_length=2000)
             prompt += f"""--- AD #{i+1} ({ad['site']}) ---
 URL: {clean_url}
 CONTENT: {clean_content}
