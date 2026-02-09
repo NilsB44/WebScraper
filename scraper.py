@@ -68,14 +68,16 @@ async def main():
                         if fetcher.is_valid_ad_link(full_url):
                             candidates.append(full_url)
 
-                new_candidates = [c for c in set(candidates) if c not in seen_urls]
+                unique_candidates = list(set(candidates))
+                new_candidates = [c for c in unique_candidates if c not in seen_urls]
+                skipped_count = len(unique_candidates) - len(new_candidates)
 
                 if not new_candidates:
-                    logger.info("   -> No new ads found.")
+                    logger.info(f"   -> No new ads found ({skipped_count} skipped).")
                     continue
 
                 num_to_check = min(len(new_candidates), 5)
-                logger.info(f"   -> Found {len(new_candidates)} new ads. Queuing TOP {num_to_check}...")
+                logger.info(f"   -> Found {len(new_candidates)} new ads ({skipped_count} skipped). Queuing TOP {num_to_check}...")
 
                 for ad_url in new_candidates[:num_to_check]:
                     content = await fetcher.fetch_ad_content(crawler, ad_url)
