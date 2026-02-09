@@ -99,20 +99,20 @@ class GeminiAnalyzer:
             return []
 
         sanitized_item = self._sanitize_input(item_name)
-        prompt = f"I am looking for: {sanitized_item}
+        prompt = f"""I am looking for: {sanitized_item}
 
 Here are {len(ads)} advertisements to check:
 
-"
+"""
         for i, ad in enumerate(ads):
             # Sanitize all external fields
             clean_url = self._sanitize_input(ad["url"], max_length=500)
             clean_content = self._sanitize_input(ad["content"], max_length=2000)
-            prompt += f"--- AD #{i+1} ({ad['site']}) ---
+            prompt += f"""--- AD #{i+1} ({ad['site']}) ---
 URL: {clean_url}
 CONTENT: {clean_content}
 
-"
+"""
 
         prompt += """
         --------------------------------------------------
