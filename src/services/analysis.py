@@ -1,8 +1,10 @@
+import asyncio
 import logging
-import time
-from typing import Any
+import re
+from typing import Any, Type
 
 from google import genai
+from pydantic import BaseModel
 
 from src.models import BatchProductCheck, ProductCheck, SearchPageSource, SearchURLGenerator
 
@@ -14,18 +16,24 @@ class GeminiAnalyzer:
             raise ValueError("GEMINI_API_KEY is missing!")
         self.client = genai.Client(api_key=api_key)
 
-    def generate_content_safe(self, prompt: str, schema: Any) -> Any | None:
-        """Tries multiple models to generate content, handling quotas."""
+    def _sanitize_input(self, text: str, max_length: int = 200) -> str:
+        if not text:
+            return ""
+        clean = re.sub(r"[^a-zA-Z0-9\s\&\+\/\.\,\-\!\?\(\)\@\#\$\€\£\kr]", "", text)
+        return clean[:max_length].strip()
+
+    async def generate_content_safe(self, prompt: str, schema: Type[BaseModel]) -> Any | None:
         models_to_try = [
             "gemini-2.0-flash",
             "gemini-1.5-flash",
-            "gemini-1.5-flash-002",
+            "gemini-1.5-flash-8b",
+            "gemini-1.5-pro",
         ]
-
-        for model in models_to_try:
+        for i, model in enumerate(models_to_try):
             try:
-                time.sleep(2) # Basic throttling
-                response = self.client.models.generate_content(
+                delay = 2 + (i * 2) 
+                await asyncio.sleep(delay)
+                response = await self.client.aio.models.generate_content(
                     model=model,
                     contents=prompt,
                     config={
@@ -40,17 +48,17 @@ class GeminiAnalyzer:
                     logger.warning(f"   [QUOTA] {model} quota/overload. Trying next...")
                     continue
                 elif "404" in err:
-                    # Model not found, skip quietly
                     continue
                 logger.error(f"   ❌ Error with {model}: {e}")
-
         return None
 
-    def get_search_urls(self, item_name: str, target_sites: list[str]) -> list[SearchPageSource]:
+    async def get_search_urls(self, item_name: str, target_sites: list[str]) -> list[SearchPageSource]:
+        sanitized_item = self._sanitize_input(item_name)
+        sanitized_sites = [self._sanitize_input(site) for site in target_sites if site]
         prompt = f"""
-        I want to buy a "{item_name}".
-        Generate direct search result URLs for: {', '.join(target_sites)}.
-        
+        I want to buy a '{sanitized_item}'.
+        Generate direct search result URLs for these marketplaces: {', '.join(sanitized_sites)}.
+
         CRITICAL URL RULES:
         - Blocket: 'https://www.blocket.se/annonser/hela_sverige?q=...'
         - Tradera: 'https://www.tradera.com/search?q=...'
@@ -59,25 +67,32 @@ class GeminiAnalyzer:
         - eBay DE: 'https://www.ebay.de/sch/i.html?_nkw=...'
         - DBA: 'https://www.dba.dk/soeg/?soeg=...'
         - Finn: 'https://www.finn.no/bap/forsale/search.html?q=...'
-        
-        Return a list of objects with 'site_name' and 'search_url'.
+
+        Example Output:
+        {{
+          "search_pages": [
+            {{"site_name": "blocket.se", "search_url": "https://www.blocket.se/annonser/hela_sverige?q=XTZ+12.17+Edge+Subwoofer"}},
+            ...
+          ]
+        }}
+
+        Return exactly the requested JSON format.
         """
-        response = self.generate_content_safe(prompt, SearchURLGenerator)
+        response = await self.generate_content_safe(prompt, SearchURLGenerator)
         if response and response.parsed:
             return response.parsed.search_pages
         return []
 
-    def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck]:
+    async def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck]:
         if not ads:
             return []
-
-        prompt = f"I am looking for: {item_name}\n\nHere are {len(ads)} advertisements to check:\n\n"
+        sanitized_item = self._sanitize_input(item_name)
+        prompt = f"I am looking for: {sanitized_item}\n\nHere are {len(ads)} advertisements to check:\n\n"
         for i, ad in enumerate(ads):
-            # Strict truncation to avoid token limits
-            clean_content = ad['content'][:2000].replace("\n", " ")
-            prompt += f"--- AD #{i+1} ({ad['site']}) ---\nURL: {ad['url']}\nCONTENT: {clean_content}\n\n"
-
-        prompt += """
+            clean_url = self._sanitize_input(ad['url'], max_length=500)
+            clean_content = self._sanitize_input(ad['content'], max_length=2000)
+            prompt += f"--- AD #{i+1} ({ad['site']}) ---\nURL: {clean_url}\nCONTENT: {clean_content}\n\n"
+        prompt += '''
         --------------------------------------------------
         INSTRUCTIONS:
         Return a JSON object with a 'results' list.
@@ -87,10 +102,8 @@ class GeminiAnalyzer:
         3. 'item_name': The clear name of the item for sale.
         4. 'price': The price with currency.
         5. 'reasoning': Brief explanation.
-        """
-
-        response = self.generate_content_safe(prompt, BatchProductCheck)
+        '''
+        response = await self.generate_content_safe(prompt, BatchProductCheck)
         if response and response.parsed:
             return response.parsed.results
         return []
-

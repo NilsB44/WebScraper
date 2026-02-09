@@ -32,7 +32,7 @@ async def main():
 
     # 1. Plan
     logger.info("🧠 Asking Gemini to generate search URLs...")
-    search_pages = analyzer.get_search_urls(settings.item_name, settings.target_sites)
+    search_pages = await analyzer.get_search_urls(settings.item_name, settings.target_sites)
     logger.info(f"📍 Agent generated {len(search_pages)} paths.")
 
     # 2. Test Notification (only on fresh start)
@@ -97,7 +97,7 @@ async def main():
         # 4. Batch Analyze
         if ads_to_analyze:
             logger.info(f"🧠 Sending BATCH analysis for {len(ads_to_analyze)} items...")
-            results = analyzer.analyze_batch(settings.item_name, ads_to_analyze)
+            results = await analyzer.analyze_batch(settings.item_name, ads_to_analyze)
 
             for res in results:
                 # Add to seen URLs regardless of match to avoid re-checking
