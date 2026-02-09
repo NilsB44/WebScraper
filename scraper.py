@@ -1,3 +1,4 @@
+import sys
 import asyncio
 import logging
 
@@ -51,12 +52,7 @@ async def main():
 
             try:
                 # Use arun directly as it was most reliable
-                result = await crawler.arun(
-                    url=page.search_url,
-                    wait_until="networkidle",
-                    delay_before_return_html=5.0,
-                    bypass_cache=True
-                )
+                result = await crawler.arun(url=page.search_url, config=fetcher.run_config)
 
                 if not result.success:
                     logger.warning("⚠️ Failed to load list page")
@@ -133,3 +129,4 @@ if __name__ == "__main__":
         logger.info("🛑 Scraper stopped by user.")
     except Exception as e:
         logger.critical(f"🔥 Critical failure: {e}")
+        sys.exit(1)
