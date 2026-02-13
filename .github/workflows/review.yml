@@ -1,0 +1,5 @@
+name: Review
+on: [pull_request]
+jobs:
+  call-review:
+    uses: ./.github/workflows/reviewer.yml
