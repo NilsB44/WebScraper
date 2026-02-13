@@ -1,4 +1,5 @@
 import os
+from typing import Any, cast
 
 from google import genai
 
@@ -20,15 +21,19 @@ else:
         found_flash = False
 
         # Loop through models and print names safely
-        for m in response:
-            # Check for 'generateContent' capability using the new attribute name
-            # Some versions use 'supported_actions', others just let us check the name
-            actions = getattr(m, "supported_actions", []) or getattr(m, "supported_generation_methods", [])
+        if response:
+            for m in response:
+                # Check for 'generateContent' capability using the new attribute name
+                # Some versions use 'supported_actions', others just let us check the name
+                actions: list[str] = getattr(m, "supported_actions", []) or getattr(
+                    m, "supported_generation_methods", []
+                )
 
-            if "generateContent" in actions or not actions:
-                print(f" - {m.name}")
-                if "flash" in m.name and "1.5" in m.name:
-                    found_flash = True
+                if "generateContent" in actions or not actions:
+                    model_name = cast(str, getattr(m, "name", str(m)))
+                    print(f" - {model_name}")
+                    if model_name and "flash" in model_name and "1.5" in model_name:
+                        found_flash = True
 
         if not found_flash:
             print("\n⚠️ WARNING: No 'gemini-1.5-flash' alias found.")

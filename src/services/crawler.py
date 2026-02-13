@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import cast
 from urllib.parse import urljoin
 
 import requests
@@ -33,7 +34,7 @@ class ContentFetcher:
         try:
             result = await crawler.arun(url=url, config=self.run_config)
             # Use meaningful variable names
-            extracted_content = result.markdown or result.html
+            extracted_content = cast(str | None, result.markdown or result.html)
 
             if extracted_content and len(extracted_content) > 500:
                 # Use named constant instead of magic number
