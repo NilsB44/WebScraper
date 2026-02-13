@@ -76,7 +76,10 @@ async def main():
                 new_candidates = [c for c in ad_candidates if c not in seen_urls]
                 seen_count = len(ad_candidates) - len(new_candidates)
 
-                logger.info(f"   📊 Results: {total_found} links found | {irrelevant_count} irrelevant | {seen_count} already seen | {len(new_candidates)} NEW ads")
+                logger.info(
+                    f"   📊 Results: {total_found} links found | {irrelevant_count} irrelevant | "
+                    f"{seen_count} already seen | {len(new_candidates)} NEW ads"
+                )
 
                 if not new_candidates:
                     continue
