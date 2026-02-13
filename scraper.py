@@ -1,6 +1,6 @@
-import sys
 import asyncio
 import logging
+import sys
 
 from crawl4ai import AsyncWebCrawler
 
@@ -61,18 +61,18 @@ async def main():
                 all_links = []
                 if result.links and "internal" in result.links:
                     all_links = [l.get("href", "") for l in result.links["internal"]]
-                
+
                 total_found = len(all_links)
                 ad_candidates = []
-                
+
                 for href in all_links:
                     full_url = fetcher.fix_relative_url(page.search_url, href)
                     if fetcher.is_valid_ad_link(full_url):
                         ad_candidates.append(full_url)
-                
+
                 ad_candidates = list(set(ad_candidates)) # Deduplicate URLs
                 irrelevant_count = total_found - len(ad_candidates)
-                
+
                 new_candidates = [c for c in ad_candidates if c not in seen_urls]
                 seen_count = len(ad_candidates) - len(new_candidates)
 
