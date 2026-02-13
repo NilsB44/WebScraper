@@ -121,7 +121,7 @@ class GeminiAnalyzer:
                     
         return results
 
-    async def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck]:
+    async def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck] | None:
         if not ads:
             return []
 
@@ -150,4 +150,6 @@ class GeminiAnalyzer:
         response = await self.generate_content_safe(prompt, BatchProductCheck)
         if response and response.parsed:
             return response.parsed.results
-        return []
+        
+        logger.error("❌ Batch analysis failed: All AI models returned errors (quota/overload).")
+        return None
