@@ -11,12 +11,9 @@ from src.services.notification import NotificationService
 from src.services.storage import GitManager, HistoryManager
 
 # --- LOGGING SETUP ---
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%H:%M:%S"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger("ScraperBot")
+
 
 async def main():
     logger.info(f"🕵️ Agent starting SNIPER RUN for: {settings.item_name}")
@@ -48,7 +45,7 @@ async def main():
 
         for page in search_pages:
             logger.info(f"🚜 Harvesting {page.site_name}: {page.search_url}")
-            await asyncio.sleep(2) # Politeness delay
+            await asyncio.sleep(2)  # Politeness delay
 
             try:
                 # Use arun directly as it was most reliable
@@ -70,7 +67,7 @@ async def main():
                     if fetcher.is_valid_ad_link(full_url):
                         ad_candidates.append(full_url)
 
-                ad_candidates = list(set(ad_candidates)) # Deduplicate URLs
+                ad_candidates = list(set(ad_candidates))  # Deduplicate URLs
                 irrelevant_count = total_found - len(ad_candidates)
 
                 new_candidates = [c for c in ad_candidates if c not in seen_urls]
@@ -94,11 +91,7 @@ async def main():
                         logger.warning("   ⚠️ Content empty. Skipping.")
                         continue
 
-                    ads_to_analyze.append({
-                        "url": ad_url,
-                        "content": content,
-                        "site": page.site_name
-                    })
+                    ads_to_analyze.append({"url": ad_url, "content": content, "site": page.site_name})
                     await asyncio.sleep(2)
 
             except Exception as e:
@@ -131,6 +124,7 @@ async def main():
             logger.info("💾 Local run: Skipping Git commit.")
     else:
         logger.info("💤 Scan complete. No new matches found.")
+
 
 if __name__ == "__main__":
     try:

@@ -23,7 +23,7 @@ else:
         for m in response:
             # Check for 'generateContent' capability using the new attribute name
             # Some versions use 'supported_actions', others just let us check the name
-            actions = getattr(m, 'supported_actions', []) or getattr(m, 'supported_generation_methods', [])
+            actions = getattr(m, "supported_actions", []) or getattr(m, "supported_generation_methods", [])
 
             if "generateContent" in actions or not actions:
                 print(f" - {m.name}")
@@ -36,4 +36,3 @@ else:
 
     except Exception as e:
         print(f"\n❌ CONNECTION ERROR: {e}")
-

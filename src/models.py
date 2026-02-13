@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, Field
 
 
@@ -6,8 +5,10 @@ class SearchPageSource(BaseModel):
     site_name: str
     search_url: str
 
+
 class SearchURLGenerator(BaseModel):
     search_pages: list[SearchPageSource]
+
 
 class ProductCheck(BaseModel):
     url: str
@@ -16,8 +17,10 @@ class ProductCheck(BaseModel):
     price: str = Field(description="The price with currency")
     reasoning: str = Field(description="Brief explanation of why this matches or not")
 
+
 class BatchProductCheck(BaseModel):
     results: list[ProductCheck]
+
 
 class AdContent(BaseModel):
     url: str

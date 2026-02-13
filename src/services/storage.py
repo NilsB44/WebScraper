@@ -5,6 +5,7 @@ import subprocess
 
 logger = logging.getLogger(__name__)
 
+
 class HistoryManager:
     def __init__(self, file_path: str):
         self.file_path = file_path
@@ -31,6 +32,7 @@ class HistoryManager:
         except Exception as e:
             logger.error(f"Error saving history: {e}")
 
+
 class GitManager:
     def __init__(self, file_path: str, user_name: str, user_email: str):
         self.file_path = file_path
@@ -51,10 +53,7 @@ class GitManager:
     def has_changes(self) -> bool:
         try:
             result = subprocess.run(
-                ["git", "status", "--porcelain", self.file_path],
-                capture_output=True,
-                text=True,
-                check=True
+                ["git", "status", "--porcelain", self.file_path], capture_output=True, text=True, check=True
             )
             return bool(result.stdout.strip())
         except subprocess.CalledProcessError:
@@ -80,4 +79,3 @@ class GitManager:
                 logger.error("❌ Failed to commit changes.")
         else:
             logger.error("❌ Failed to stage changes.")
-

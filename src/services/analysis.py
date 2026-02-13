@@ -42,9 +42,7 @@ class GeminiAnalyzer:
         clean = clean.replace("---", " - ")
         return clean[:max_length].strip()
 
-    async def generate_content_safe(
-        self, prompt: str, schema: type[BaseModel]
-    ) -> Any | None:
+    async def generate_content_safe(self, prompt: str, schema: type[BaseModel]) -> Any | None:
         """Tries multiple models to generate content, handling quotas with backoff."""
         models_to_try = [
             "gemini-2.0-flash",
@@ -78,9 +76,7 @@ class GeminiAnalyzer:
 
         return None
 
-    async def get_search_urls(
-        self, item_name: str, target_sites: list[str]
-    ) -> list[SearchPageSource]:
+    async def get_search_urls(self, item_name: str, target_sites: list[str]) -> list[SearchPageSource]:
         """
         Generates search URLs. Prioritizes local templates to save Gemini tokens.
         Only asks Gemini for sites without a local template.
@@ -97,14 +93,10 @@ class GeminiAnalyzer:
                 remaining_sites.append(site)
 
         if not remaining_sites:
-            logger.info(
-                "✅ All search URLs generated from local templates (0 tokens used)."
-            )
+            logger.info("✅ All search URLs generated from local templates (0 tokens used).")
             return results
 
-        logger.info(
-            f"🧠 Asking Gemini for search URLs for {len(remaining_sites)} unknown sites..."
-        )
+        logger.info(f"🧠 Asking Gemini for search URLs for {len(remaining_sites)} unknown sites...")
         sanitized_item = self._sanitize_input(item_name)
         prompt = f"""
         I want to buy a '{sanitized_item}'.
@@ -122,21 +114,16 @@ class GeminiAnalyzer:
 
         return results
 
-    async def analyze_batch(
-        self, item_name: str, ads: list[dict[str, str]]
-    ) -> list[ProductCheck] | None:
+    async def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck] | None:
         if not ads:
             return []
 
         sanitized_item = self._sanitize_input(item_name)
-        prompt = (
-            f"I am looking for: {sanitized_item}\n\n"
-            f"Here are {len(ads)} advertisements to check:\n\n"
-        )
+        prompt = f"I am looking for: {sanitized_item}\n\nHere are {len(ads)} advertisements to check:\n\n"
         for i, ad in enumerate(ads):
             clean_url = self._sanitize_input(ad["url"], max_length=500)
             clean_content = self._sanitize_input(ad["content"], max_length=2000)
-            prompt += f"--- AD #{i+1} ({ad['site']}) ---\nURL: {clean_url}\nCONTENT: {clean_content}\n\n"
+            prompt += f"--- AD #{i + 1} ({ad['site']}) ---\nURL: {clean_url}\nCONTENT: {clean_content}\n\n"
 
         prompt += """
         --------------------------------------------------
@@ -154,7 +141,5 @@ class GeminiAnalyzer:
         if response and response.parsed:
             return response.parsed.results
 
-        logger.error(
-            "❌ Batch analysis failed: All AI models returned errors (quota/overload)."
-        )
+        logger.error("❌ Batch analysis failed: All AI models returned errors (quota/overload).")
         return None

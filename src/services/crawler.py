@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 MAX_CONTENT_LENGTH = 20000
 
+
 class ContentFetcher:
     def __init__(self, headless: bool = True):
         self.browser_config = BrowserConfig(
