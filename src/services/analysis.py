@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class GeminiAnalyzer:
     # Maintainable search URL templates
-    SEARCH_TEMPLATES = {
+    SEARCH_TEMPLATES: dict[str, str] = {
         "blocket.se": "https://www.blocket.se/annonser/hela_sverige?q={q}",
         "tradera.com": "https://www.tradera.com/search?q={q}",
         "kleinanzeigen.de": "https://www.kleinanzeigen.de/s-suchanfrage.html?keywords={q}",
@@ -31,11 +31,14 @@ class GeminiAnalyzer:
     def _sanitize_input(self, text: str, max_length: int = 200) -> str:
         """
         Sanitize input using an allow-list of safe characters.
-        Allows alphanumeric, common punctuation, and product-relevant symbols.
+        Allow-list: alphanumeric, whitespace, and & + / . , ! ? ( ) @ # $ € £ k r and -
         """
         if not text:
             return ""
+        # Remove characters not in the allow-list
         clean = re.sub(r"[^a-zA-Z0-9\s&+/.,!?()@#$€£kr-]", "", text)
+        # Prevent prompt injection by neutralizing potential delimiters
+        clean = clean.replace("---", " - ")
         return clean[:max_length].strip()
 
     async def generate_content_safe(self, prompt: str, schema: Type[BaseModel]) -> Any | None:
@@ -101,17 +104,17 @@ class GeminiAnalyzer:
         """
         response = await self.generate_content_safe(prompt, SearchURLGenerator)
         
-        results = []
+        results: list[SearchPageSource] = []
         if response and response.parsed:
             results = response.parsed.search_pages
             
         if not results:
             logger.warning("⚠️ Gemini failed to generate URLs. Using local heuristics failover.")
             # Secure URL encoding for query parameters
-            q = urllib.parse.quote_plus(sanitized_item)
+            q: str = urllib.parse.quote_plus(sanitized_item)
             for site in target_sites:
                 if site in self.SEARCH_TEMPLATES:
-                    url = self.SEARCH_TEMPLATES[site].format(q=q)
+                    url: str = self.SEARCH_TEMPLATES[site].format(q=q)
                     results.append(SearchPageSource(site_name=site, search_url=url))
                 else:
                     logger.warning(f"   ⚠️ No local failover template for site: {site}")
@@ -123,7 +126,10 @@ class GeminiAnalyzer:
             return []
 
         sanitized_item = self._sanitize_input(item_name)
-        prompt = f"I am looking for: {sanitized_item}\n\nHere are {len(ads)} advertisements to check:\n\n"
+        prompt = (
+            f"I am looking for: {sanitized_item}\n\n"
+            f"Here are {len(ads)} advertisements to check:\n\n"
+        )
         for i, ad in enumerate(ads):
             clean_url = self._sanitize_input(ad['url'], max_length=500)
             clean_content = self._sanitize_input(ad['content'], max_length=2000)
