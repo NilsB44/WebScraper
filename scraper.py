@@ -37,12 +37,12 @@ async def main() -> None:
 
     # Start the browser session ONCE for efficiency
     async with AsyncWebCrawler(config=content_fetcher.browser_config) as crawler:
-        
+
         # 2. Iterate through Tasks (Multi-Path)
         for task in settings.tasks:
             logger.info(f"\n⚡ Starting Task: {task.name}")
             logger.info(f"   🔎 Query: {task.search_query}")
-            
+
             notification_service.notify_start(task.name)
 
             # A. Get Search URLs
@@ -57,7 +57,7 @@ async def main() -> None:
             # B. Agentic Search Page Analysis
             for source in search_urls:
                 logger.info(f"   🌐 Checking list page: {source.search_url}")
-                
+
                 # Fetch content of the SEARCH RESULTS page
                 list_content = await content_fetcher.fetch_ad_content(crawler, source.search_url)
                 if not list_content:
@@ -66,7 +66,7 @@ async def main() -> None:
 
                 # Ask Gemini to pick candidates from this list
                 candidates = await analyzer.analyze_search_page(list_content, task)
-                
+
                 if not candidates:
                     logger.info("   👀 No interesting candidates found on this page.")
                     continue
@@ -77,7 +77,7 @@ async def main() -> None:
                 for cand in candidates:
                     if cand.url in seen_urls:
                         continue
-                    
+
                     # Double check url validity
                     if not content_fetcher.is_valid_ad_link(cand.url):
                         # Sometimes LLM extracts partial URLs or junk
@@ -90,7 +90,7 @@ async def main() -> None:
                         continue
 
                     logger.info(f"      🕵️ Deep diving: {cand.title} ({cand.price})")
-                    
+
                     # Fetch Ad Content
                     ad_content = await content_fetcher.fetch_ad_content(crawler, cand.url)
                     if ad_content:
@@ -119,7 +119,7 @@ async def main() -> None:
 
     # 3. Save & Commit
     storage_service.save(seen_urls)
-    
+
     if found_something_new and settings.ci_mode:
         git_service.commit_and_push("update: seen items (found new matches)")
     elif settings.ci_mode:

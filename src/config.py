@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     gemini_api_key: str = Field(..., description="API Key for Google Gemini")
-    
+
     # Notification
     ntfy_topic: str = Field(
         default="gemini_and_nils_subscribtion_service", description="Topic for ntfy.sh notifications"

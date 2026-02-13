@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -47,6 +46,6 @@ class ScrapeTask(BaseModel):
     """Defines a specific scraping job."""
     name: str
     search_query: str
-    max_price: Optional[int] = None
+    max_price: int | None = None
     currency: str = "SEK"
     description: str = ""

@@ -1,21 +1,20 @@
-from typing import cast
 import asyncio
 import logging
 import re
 import urllib.parse
-from typing import Any
+from typing import Any, cast
 
 from google import genai
 from pydantic import BaseModel
 
 from src.models import (
-    BatchProductCheck, 
-    ProductCheck, 
-    SearchPageSource, 
-    SearchURLGenerator, 
-    CandidateItem, 
+    BatchProductCheck,
+    CandidateItem,
+    ProductCheck,
+    ScrapeTask,
     SearchPageAnalysis,
-    ScrapeTask
+    SearchPageSource,
+    SearchURLGenerator,
 )
 
 logger = logging.getLogger(__name__)
@@ -129,10 +128,13 @@ class GeminiAnalyzer:
         identifies items that match the task criteria (title + price).
         """
         logger.info(f"   🧠 Agentic Analysis of search page for '{task.name}'...")
-        
+
         price_instruction = ""
         if task.max_price:
-            price_instruction = f"IMPORTANT: Filter out any items strictly MORE expensive than {task.max_price} {task.currency}."
+            price_instruction = (
+                f"IMPORTANT: Filter out any items strictly MORE expensive than "
+                f"{task.max_price} {task.currency}."
+            )
 
         prompt = f"""
         I am looking for: {task.search_query}
@@ -141,7 +143,7 @@ class GeminiAnalyzer:
 
         Here is the text content of a search result page:
         --------------------------------------------------
-        {content[:30000]} 
+        {content[:30000]}
         --------------------------------------------------
 
         INSTRUCTIONS:
@@ -161,7 +163,7 @@ class GeminiAnalyzer:
                 if c.confidence_score > 60:
                     filtered.append(c)
             return filtered
-        
+
         return []
 
     async def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck] | None:
