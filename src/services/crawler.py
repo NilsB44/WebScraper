@@ -18,8 +18,8 @@ class ContentFetcher:
         self.run_config = CrawlerRunConfig(
             cache_mode=CacheMode.BYPASS,
             wait_until="networkidle",
-            delay_before_return_html=5.0,
-            magic_mode=True,
+            delay_before_return_html=8.0,
+            magic=True,
         )
 
     async def fetch_ad_content(self, crawler: AsyncWebCrawler, url: str) -> str | None:
@@ -30,12 +30,7 @@ class ContentFetcher:
 
         # Method 1: Crawl4AI
         try:
-            result = await crawler.arun(
-                url=url,
-                wait_until="networkidle",
-                delay_before_return_html=8.0,
-                bypass_cache=True
-            )
+            result = await crawler.arun(url=url, config=self.run_config)
             # Use meaningful variable names
             extracted_content = result.markdown or result.html
 
