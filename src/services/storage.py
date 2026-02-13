@@ -5,6 +5,7 @@ import subprocess
 
 logger = logging.getLogger(__name__)
 
+
 class HistoryManager:
     def __init__(self, file_path: str):
         self.file_path = file_path
@@ -14,7 +15,10 @@ class HistoryManager:
         if os.path.exists(self.file_path):
             try:
                 with open(self.file_path, encoding="utf-8") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    if not isinstance(data, list):
+                        return []
+                    return data
             except json.JSONDecodeError:
                 logger.warning(f"[WARNING] History file {self.file_path} corrupted. Starting fresh.")
                 return []
@@ -23,13 +27,14 @@ class HistoryManager:
                 return []
         return []
 
-    def save(self, history: list[str]):
+    def save(self, history: list[str]) -> None:
         """Saves the history of seen URLs."""
         try:
             with open(self.file_path, "w", encoding="utf-8") as f:
                 json.dump(history, f, indent=2)
         except Exception as e:
             logger.error(f"Error saving history: {e}")
+
 
 class GitManager:
     def __init__(self, file_path: str, user_name: str, user_email: str):
@@ -51,16 +56,13 @@ class GitManager:
     def has_changes(self) -> bool:
         try:
             result = subprocess.run(
-                ["git", "status", "--porcelain", self.file_path],
-                capture_output=True,
-                text=True,
-                check=True
+                ["git", "status", "--porcelain", self.file_path], capture_output=True, text=True, check=True
             )
             return bool(result.stdout.strip())
         except subprocess.CalledProcessError:
             return False
 
-    def commit_and_push(self, message: str):
+    def commit_and_push(self, message: str) -> None:
         if not self.has_changes():
             logger.info("No changes to commit.")
             return
@@ -80,4 +82,3 @@ class GitManager:
                 logger.error("❌ Failed to commit changes.")
         else:
             logger.error("❌ Failed to stage changes.")
-

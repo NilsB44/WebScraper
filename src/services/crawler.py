@@ -1,13 +1,15 @@
 import asyncio
 import logging
+from typing import cast
 from urllib.parse import urljoin
 
 import requests
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig
+from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig  # type: ignore
 
 logger = logging.getLogger(__name__)
 
 MAX_CONTENT_LENGTH = 20000
+
 
 class ContentFetcher:
     def __init__(self, headless: bool = True):
@@ -32,7 +34,7 @@ class ContentFetcher:
         try:
             result = await crawler.arun(url=url, config=self.run_config)
             # Use meaningful variable names
-            extracted_content = result.markdown or result.html
+            extracted_content = cast(str | None, result.markdown or result.html)
 
             if extracted_content and len(extracted_content) > 500:
                 # Use named constant instead of magic number

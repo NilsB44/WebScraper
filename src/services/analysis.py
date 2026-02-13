@@ -2,7 +2,7 @@ import asyncio
 import logging
 import re
 import urllib.parse
-from typing import Any, Type
+from typing import Any, cast
 
 from google import genai
 from pydantic import BaseModel
@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from src.models import BatchProductCheck, ProductCheck, SearchPageSource, SearchURLGenerator
 
 logger = logging.getLogger(__name__)
+
 
 class GeminiAnalyzer:
     # Maintainable search URL templates
@@ -20,7 +21,7 @@ class GeminiAnalyzer:
         "hifitorget.se": "https://hifitorget.se/index.php?mod=search&searchstring={q}",
         "ebay.de": "https://www.ebay.de/sch/i.html?_nkw={q}",
         "dba.dk": "https://www.dba.dk/soeg/?soeg={q}",
-        "finn.no": "https://www.finn.no/bap/forsale/search.html?q={q}"
+        "finn.no": "https://www.finn.no/bap/forsale/search.html?q={q}",
     }
 
     def __init__(self, api_key: str):
@@ -41,7 +42,7 @@ class GeminiAnalyzer:
         clean = clean.replace("---", " - ")
         return clean[:max_length].strip()
 
-    async def generate_content_safe(self, prompt: str, schema: Type[BaseModel]) -> Any | None:
+    async def generate_content_safe(self, prompt: str, schema: type[BaseModel]) -> Any | None:
         """Tries multiple models to generate content, handling quotas with backoff."""
         models_to_try = [
             "gemini-2.0-flash",
@@ -52,9 +53,9 @@ class GeminiAnalyzer:
 
         for i, model in enumerate(models_to_try):
             try:
-                delay = 2 + (i * 2) 
+                delay = 2 + (i * 2)
                 await asyncio.sleep(delay)
-                
+
                 response = await self.client.aio.models.generate_content(
                     model=model,
                     contents=prompt,
@@ -75,22 +76,22 @@ class GeminiAnalyzer:
 
         return None
 
-        async def get_search_urls(self, item_name: str, target_sites: list[str]) -> list[SearchPageSource]:
+    async def get_search_urls(self, item_name: str, target_sites: list[str]) -> list[SearchPageSource]:
         """
         Generates search URLs. Prioritizes local templates to save Gemini tokens.
         Only asks Gemini for sites without a local template.
         """
         results: list[SearchPageSource] = []
         q: str = urllib.parse.quote_plus(item_name)
-        
+
         remaining_sites = []
         for site in target_sites:
-            if site in self.SEARCH_TEMPLATES:
+            if site and site in self.SEARCH_TEMPLATES:
                 url = self.SEARCH_TEMPLATES[site].format(q=q)
                 results.append(SearchPageSource(site_name=site, search_url=url))
             else:
                 remaining_sites.append(site)
-        
+
         if not remaining_sites:
             logger.info("✅ All search URLs generated from local templates (0 tokens used).")
             return results
@@ -109,8 +110,8 @@ class GeminiAnalyzer:
         """
         response = await self.generate_content_safe(prompt, SearchURLGenerator)
         if response and response.parsed:
-            results.extend(response.parsed.search_pages)
-            
+            results.extend(cast(list[SearchPageSource], response.parsed.search_pages))
+
         return results
 
     async def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck] | None:
@@ -118,14 +119,11 @@ class GeminiAnalyzer:
             return []
 
         sanitized_item = self._sanitize_input(item_name)
-        prompt = (
-            f"I am looking for: {sanitized_item}\n\n"
-            f"Here are {len(ads)} advertisements to check:\n\n"
-        )
+        prompt = f"I am looking for: {sanitized_item}\n\nHere are {len(ads)} advertisements to check:\n\n"
         for i, ad in enumerate(ads):
-            clean_url = self._sanitize_input(ad['url'], max_length=500)
-            clean_content = self._sanitize_input(ad['content'], max_length=2000)
-            prompt += f"--- AD #{i+1} ({ad['site']}) ---\nURL: {clean_url}\nCONTENT: {clean_content}\n\n"
+            clean_url = self._sanitize_input(ad["url"], max_length=500)
+            clean_content = self._sanitize_input(ad["content"], max_length=2000)
+            prompt += f"--- AD #{i + 1} ({ad['site']}) ---\nURL: {clean_url}\nCONTENT: {clean_content}\n\n"
 
         prompt += """
         --------------------------------------------------
@@ -141,7 +139,7 @@ class GeminiAnalyzer:
 
         response = await self.generate_content_safe(prompt, BatchProductCheck)
         if response and response.parsed:
-            return response.parsed.results
-        
+            return cast(list[ProductCheck] | None, response.parsed.results)
+
         logger.error("❌ Batch analysis failed: All AI models returned errors (quota/overload).")
         return None

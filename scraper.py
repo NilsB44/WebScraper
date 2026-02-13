@@ -1,8 +1,8 @@
-import sys
 import asyncio
 import logging
+import sys
 
-from crawl4ai import AsyncWebCrawler
+from crawl4ai import AsyncWebCrawler  # type: ignore
 
 from src.config import settings
 from src.services.analysis import GeminiAnalyzer
@@ -11,14 +11,11 @@ from src.services.notification import NotificationService
 from src.services.storage import GitManager, HistoryManager
 
 # --- LOGGING SETUP ---
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%H:%M:%S"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger("ScraperBot")
 
-async def main():
+
+async def main() -> None:
     logger.info(f"🕵️ Agent starting SNIPER RUN for: {settings.item_name}")
 
     # Initialize Services
@@ -48,7 +45,7 @@ async def main():
 
         for page in search_pages:
             logger.info(f"🚜 Harvesting {page.site_name}: {page.search_url}")
-            await asyncio.sleep(2) # Politeness delay
+            await asyncio.sleep(2)  # Politeness delay
 
             try:
                 # Use arun directly as it was most reliable
@@ -60,23 +57,26 @@ async def main():
 
                 all_links = []
                 if result.links and "internal" in result.links:
-                    all_links = [l.get("href", "") for l in result.links["internal"]]
-                
+                    all_links = [link.get("href", "") for link in result.links["internal"]]
+
                 total_found = len(all_links)
                 ad_candidates = []
-                
+
                 for href in all_links:
                     full_url = fetcher.fix_relative_url(page.search_url, href)
                     if fetcher.is_valid_ad_link(full_url):
                         ad_candidates.append(full_url)
-                
-                ad_candidates = list(set(ad_candidates)) # Deduplicate URLs
+
+                ad_candidates = list(set(ad_candidates))  # Deduplicate URLs
                 irrelevant_count = total_found - len(ad_candidates)
-                
+
                 new_candidates = [c for c in ad_candidates if c not in seen_urls]
                 seen_count = len(ad_candidates) - len(new_candidates)
 
-                logger.info(f"   📊 Results: {total_found} links found | {irrelevant_count} irrelevant | {seen_count} already seen | {len(new_candidates)} NEW ads")
+                logger.info(
+                    f"   📊 Results: {total_found} links found | {irrelevant_count} irrelevant | "
+                    f"{seen_count} already seen | {len(new_candidates)} NEW ads"
+                )
 
                 if not new_candidates:
                     continue
@@ -91,11 +91,7 @@ async def main():
                         logger.warning("   ⚠️ Content empty. Skipping.")
                         continue
 
-                    ads_to_analyze.append({
-                        "url": ad_url,
-                        "content": content,
-                        "site": page.site_name
-                    })
+                    ads_to_analyze.append({"url": ad_url, "content": content, "site": page.site_name})
                     await asyncio.sleep(2)
 
             except Exception as e:
@@ -106,17 +102,18 @@ async def main():
             logger.info(f"🧠 Sending BATCH analysis for {len(ads_to_analyze)} items...")
             results = await analyzer.analyze_batch(settings.item_name, ads_to_analyze)
 
-            for res in results:
-                # Add to seen URLs regardless of match to avoid re-checking
-                if res.url not in seen_urls:
-                    seen_urls.append(res.url)
+            if results:
+                for res in results:
+                    # Add to seen URLs regardless of match to avoid re-checking
+                    if res.url not in seen_urls:
+                        seen_urls.append(res.url)
 
-                if res.found_item:
-                    logger.info(f"   ✅ MATCH! {res.item_name}")
-                    notification_service.notify_match(res.item_name, res.price, res.url)
-                    found_something_new = True
-                else:
-                    logger.info(f"   ❌ {res.item_name} ({res.reasoning})")
+                    if res.found_item:
+                        logger.info(f"   ✅ MATCH! {res.item_name}")
+                        notification_service.notify_match(res.item_name, res.price, res.url)
+                        found_something_new = True
+                    else:
+                        logger.info(f"   ❌ {res.item_name} ({res.reasoning})")
 
     # 5. Save
     history_manager.save(seen_urls)
@@ -128,6 +125,7 @@ async def main():
             logger.info("💾 Local run: Skipping Git commit.")
     else:
         logger.info("💤 Scan complete. No new matches found.")
+
 
 if __name__ == "__main__":
     try:
