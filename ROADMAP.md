@@ -6,9 +6,9 @@ This roadmap details the evolution of WebScraper from a simple extraction tool i
 Transform the scraper into a system where a user can simply state: *"Find faulty priced high-end audio equipment on European marketplaces"* and the agent autonomously configures paths, analyzes data for pricing mistakes, and notifies the user.
 
 ## Phase 1: Modular Configuration & Multi-Object Scoping
-*   **Dynamic Task Schema:** Implement a plugin-based architecture where scraping targets (e.g., "GPU Prices", "Real Estate Anomalies") are defined via simple YAML/JSON configurations.
-*   **Multi-Path Traversal:** Enable the scraper to handle multiple paths and object types in a single run, maintaining state across disparate marketplace structures.
-*   **Agentic Link Analysis:** Implement a "First-Pass" agent that looks at search result lists and uses reasoning to decide which specific links are worth a "Deep-Dive" crawl, saving tokens and bandwidth.
+*   **Dynamic Task Schema:** [x] Implement a plugin-based architecture where scraping targets (e.g., "GPU Prices", "Real Estate Anomalies") are defined via simple YAML/JSON configurations.
+*   **Multi-Path Traversal:** [x] Enable the scraper to handle multiple paths and object types in a single run, maintaining state across disparate marketplace structures.
+*   **Agentic Link Analysis:** [x] Implement a "First-Pass" agent that looks at search result lists and uses reasoning to decide which specific links are worth a "Deep-Dive" crawl, saving tokens and bandwidth.
 
 ## Phase 2: AI Resilience & Self-Healing
 *   **Vision-Guided Self-Healing:** Implement a mechanism to automatically update CSS/XPath selectors when website structures change. When a selector fails, the system captures a screenshot and uses Gemini Vision to identify the new location of the data.

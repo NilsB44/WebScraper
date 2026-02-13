@@ -1,3 +1,4 @@
+
 from pydantic import BaseModel, Field
 
 
@@ -8,6 +9,19 @@ class SearchPageSource(BaseModel):
 
 class SearchURLGenerator(BaseModel):
     search_pages: list[SearchPageSource]
+
+
+class CandidateItem(BaseModel):
+    """Represents a potential match found on a search result page."""
+    url: str
+    title: str
+    price: str
+    reasoning: str
+    confidence_score: int = Field(description="0-100 score of how likely this is a match")
+
+
+class SearchPageAnalysis(BaseModel):
+    candidates: list[CandidateItem]
 
 
 class ProductCheck(BaseModel):
@@ -26,3 +40,12 @@ class AdContent(BaseModel):
     url: str
     content: str
     site: str
+
+
+class ScrapeTask(BaseModel):
+    """Defines a specific scraping job."""
+    name: str
+    search_query: str
+    max_price: int | None = None
+    currency: str = "SEK"
+    description: str = ""

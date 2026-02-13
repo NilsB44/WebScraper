@@ -7,7 +7,15 @@ from typing import Any, cast
 from google import genai
 from pydantic import BaseModel
 
-from src.models import BatchProductCheck, ProductCheck, SearchPageSource, SearchURLGenerator
+from src.models import (
+    BatchProductCheck,
+    CandidateItem,
+    ProductCheck,
+    ScrapeTask,
+    SearchPageAnalysis,
+    SearchPageSource,
+    SearchURLGenerator,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +94,7 @@ class GeminiAnalyzer:
 
         remaining_sites = []
         for site in target_sites:
-            if site and site in self.SEARCH_TEMPLATES:
+            if site in self.SEARCH_TEMPLATES:
                 url = self.SEARCH_TEMPLATES[site].format(q=q)
                 results.append(SearchPageSource(site_name=site, search_url=url))
             else:
@@ -113,6 +121,50 @@ class GeminiAnalyzer:
             results.extend(cast(list[SearchPageSource], response.parsed.search_pages))
 
         return results
+
+    async def analyze_search_page(self, content: str, task: ScrapeTask) -> list[CandidateItem]:
+        """
+        First-Pass Analysis: Looks at the raw text of a search result page and
+        identifies items that match the task criteria (title + price).
+        """
+        logger.info(f"   🧠 Agentic Analysis of search page for '{task.name}'...")
+
+        price_instruction = ""
+        if task.max_price:
+            price_instruction = (
+                f"IMPORTANT: Filter out any items strictly MORE expensive than "
+                f"{task.max_price} {task.currency}."
+            )
+
+        prompt = f"""
+        I am looking for: {task.search_query}
+        {task.description}
+        {price_instruction}
+
+        Here is the text content of a search result page:
+        --------------------------------------------------
+        {content[:30000]}
+        --------------------------------------------------
+
+        INSTRUCTIONS:
+        1. Identify items in the list that match my search query.
+        2. Ignore "Wanted" or "Buying" ads (I want to BUY, not sell).
+        3. Ignore obvious accessories if I'm looking for the main unit (unless query implies otherwise).
+        4. {price_instruction}
+        5. Return a JSON list of candidates. Confidence 0-100.
+        """
+
+        response = await self.generate_content_safe(prompt, SearchPageAnalysis)
+        if response and response.parsed:
+            candidates = cast(list[CandidateItem], response.parsed.candidates)
+            # Post-processing filter to be double sure
+            filtered = []
+            for c in candidates:
+                if c.confidence_score > 60:
+                    filtered.append(c)
+            return filtered
+
+        return []
 
     async def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck] | None:
         if not ads:
