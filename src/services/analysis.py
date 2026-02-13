@@ -1,3 +1,4 @@
+from typing import cast
 import asyncio
 import logging
 import re
@@ -110,7 +111,7 @@ class GeminiAnalyzer:
         """
         response = await self.generate_content_safe(prompt, SearchURLGenerator)
         if response and response.parsed:
-            results.extend(response.parsed.search_pages)
+            results.extend(cast(list[SearchPageSource], response.parsed.search_pages))
 
         return results
 
@@ -139,7 +140,7 @@ class GeminiAnalyzer:
 
         response = await self.generate_content_safe(prompt, BatchProductCheck)
         if response and response.parsed:
-            return response.parsed.results  # type: ignore
+            return cast(list[ProductCheck] | None, response.parsed.results)
 
         logger.error("❌ Batch analysis failed: All AI models returned errors (quota/overload).")
         return None
