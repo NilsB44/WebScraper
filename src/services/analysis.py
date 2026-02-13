@@ -87,7 +87,7 @@ class GeminiAnalyzer:
 
         remaining_sites = []
         for site in target_sites:
-            if site in self.SEARCH_TEMPLATES:
+            if site and site in self.SEARCH_TEMPLATES:
                 url = self.SEARCH_TEMPLATES[site].format(q=q)
                 results.append(SearchPageSource(site_name=site, search_url=url))
             else:
