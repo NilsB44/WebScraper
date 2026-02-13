@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import re
+import urllib.parse
 from typing import Any, Type
 
 from google import genai
@@ -11,6 +12,17 @@ from src.models import BatchProductCheck, ProductCheck, SearchPageSource, Search
 logger = logging.getLogger(__name__)
 
 class GeminiAnalyzer:
+    # Maintainable search URL templates
+    SEARCH_TEMPLATES: dict[str, str] = {
+        "blocket.se": "https://www.blocket.se/annonser/hela_sverige?q={q}",
+        "tradera.com": "https://www.tradera.com/search?q={q}",
+        "kleinanzeigen.de": "https://www.kleinanzeigen.de/s-suchanfrage.html?keywords={q}",
+        "hifitorget.se": "https://hifitorget.se/index.php?mod=search&searchstring={q}",
+        "ebay.de": "https://www.ebay.de/sch/i.html?_nkw={q}",
+        "dba.dk": "https://www.dba.dk/soeg/?soeg={q}",
+        "finn.no": "https://www.finn.no/bap/forsale/search.html?q={q}"
+    }
+
     def __init__(self, api_key: str):
         if not api_key:
             raise ValueError("GEMINI_API_KEY is missing!")
@@ -19,13 +31,14 @@ class GeminiAnalyzer:
     def _sanitize_input(self, text: str, max_length: int = 200) -> str:
         """
         Sanitize input using an allow-list of safe characters.
-        Allows alphanumeric, common punctuation, and product-relevant symbols.
+        Allow-list: alphanumeric, whitespace, and & + / . , ! ? ( ) @ # $ € £ k r and -
         """
         if not text:
             return ""
-        # Allow-list: alphanumeric, whitespace, and & + / . , ! ? ( ) @ # $ € £ k r and -
-        # Hyphen is at the end to avoid being interpreted as a range.
+        # Remove characters not in the allow-list
         clean = re.sub(r"[^a-zA-Z0-9\s&+/.,!?()@#$€£kr-]", "", text)
+        # Prevent prompt injection by neutralizing potential delimiters
+        clean = clean.replace("---", " - ")
         return clean[:max_length].strip()
 
     async def generate_content_safe(self, prompt: str, schema: Type[BaseModel]) -> Any | None:
@@ -39,7 +52,6 @@ class GeminiAnalyzer:
 
         for i, model in enumerate(models_to_try):
             try:
-                # Dynamic delay: start with 2s, increase if we are deep in fallbacks
                 delay = 2 + (i * 2) 
                 await asyncio.sleep(delay)
                 
@@ -91,29 +103,37 @@ class GeminiAnalyzer:
         Return exactly the requested JSON format.
         """
         response = await self.generate_content_safe(prompt, SearchURLGenerator)
+        
+        results: list[SearchPageSource] = []
         if response and response.parsed:
-            return response.parsed.search_pages
-        return []
+            results = response.parsed.search_pages
+            
+        if not results:
+            logger.warning("⚠️ Gemini failed to generate URLs. Using local heuristics failover.")
+            # Secure URL encoding for query parameters
+            q: str = urllib.parse.quote_plus(sanitized_item)
+            for site in target_sites:
+                if site in self.SEARCH_TEMPLATES:
+                    url: str = self.SEARCH_TEMPLATES[site].format(q=q)
+                    results.append(SearchPageSource(site_name=site, search_url=url))
+                else:
+                    logger.warning(f"   ⚠️ No local failover template for site: {site}")
+                    
+        return results
 
     async def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck]:
         if not ads:
             return []
 
         sanitized_item = self._sanitize_input(item_name)
-        prompt = f"""I am looking for: {sanitized_item}
-
-Here are {len(ads)} advertisements to check:
-
-"""
+        prompt = (
+            f"I am looking for: {sanitized_item}\n\n"
+            f"Here are {len(ads)} advertisements to check:\n\n"
+        )
         for i, ad in enumerate(ads):
-            # Sanitize all external fields
             clean_url = self._sanitize_input(ad['url'], max_length=500)
             clean_content = self._sanitize_input(ad['content'], max_length=2000)
-            prompt += f"""--- AD #{i+1} ({ad['site']}) ---
-URL: {clean_url}
-CONTENT: {clean_content}
-
-"""
+            prompt += f"--- AD #{i+1} ({ad['site']}) ---\nURL: {clean_url}\nCONTENT: {clean_content}\n\n"
 
         prompt += """
         --------------------------------------------------
