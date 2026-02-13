@@ -60,7 +60,7 @@ async def main():
 
                 all_links = []
                 if result.links and "internal" in result.links:
-                    all_links = [l.get("href", "") for l in result.links["internal"]]
+                    all_links = [link.get("href", "") for link in result.links["internal"]]
 
                 total_found = len(all_links)
                 ad_candidates = []

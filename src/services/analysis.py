@@ -2,7 +2,7 @@ import asyncio
 import logging
 import re
 import urllib.parse
-from typing import Any, Type
+from typing import Any
 
 from google import genai
 from pydantic import BaseModel
@@ -43,7 +43,7 @@ class GeminiAnalyzer:
         return clean[:max_length].strip()
 
     async def generate_content_safe(
-        self, prompt: str, schema: Type[BaseModel]
+        self, prompt: str, schema: type[BaseModel]
     ) -> Any | None:
         """Tries multiple models to generate content, handling quotas with backoff."""
         models_to_try = [
