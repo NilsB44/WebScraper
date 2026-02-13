@@ -18,7 +18,7 @@ class HistoryManager:
                     data = json.load(f)
                     if not isinstance(data, list):
                         return []
-                    return data  # type: ignore
+                    return data
             except json.JSONDecodeError:
                 logger.warning(f"[WARNING] History file {self.file_path} corrupted. Starting fresh.")
                 return []

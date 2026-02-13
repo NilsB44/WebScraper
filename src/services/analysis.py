@@ -110,7 +110,7 @@ class GeminiAnalyzer:
         """
         response = await self.generate_content_safe(prompt, SearchURLGenerator)
         if response and response.parsed:
-            results.extend(response.parsed.search_pages)  # type: ignore
+            results.extend(response.parsed.search_pages)
 
         return results
 

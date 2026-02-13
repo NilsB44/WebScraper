@@ -5,7 +5,7 @@ from google import genai
 
 
 @pytest.mark.skip(reason="Requires real API key")
-def test_quota_check():
+def test_quota_check() -> None:
     api_key = os.environ.get("GEMINI_API_KEY", "dummy_key")
     client = genai.Client(api_key=api_key)
 

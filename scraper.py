@@ -2,7 +2,7 @@ import asyncio
 import logging
 import sys
 
-from crawl4ai import AsyncWebCrawler
+from crawl4ai import AsyncWebCrawler # type: ignore
 
 from src.config import settings
 from src.services.analysis import GeminiAnalyzer
