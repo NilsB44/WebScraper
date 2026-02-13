@@ -1,6 +1,6 @@
 import logging
 
-import requests  # type: ignore
+import requests
 
 logger = logging.getLogger(__name__)
 

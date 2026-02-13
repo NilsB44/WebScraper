@@ -56,3 +56,8 @@ indent-style = "space"
 [tool.mypy]
 python_version = "3.12"
 strict = true
+
+[dependency-groups]
+dev = [
+    "types-requests>=2.32.4.20260107",
+]

@@ -2,7 +2,7 @@ import asyncio
 import logging
 from urllib.parse import urljoin
 
-import requests  # type: ignore
+import requests
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig
 
 logger = logging.getLogger(__name__)
