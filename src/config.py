@@ -32,4 +32,4 @@ class Settings(BaseSettings):
 
 
 logger.info("Settings loaded")
-settings = Settings()
+settings = Settings()  # type: ignore

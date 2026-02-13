@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger("ScraperBot")
 
 
-async def main():
+async def main() -> None:
     logger.info(f"🕵️ Agent starting SNIPER RUN for: {settings.item_name}")
 
     # Initialize Services
@@ -102,17 +102,18 @@ async def main():
             logger.info(f"🧠 Sending BATCH analysis for {len(ads_to_analyze)} items...")
             results = await analyzer.analyze_batch(settings.item_name, ads_to_analyze)
 
-            for res in results:
-                # Add to seen URLs regardless of match to avoid re-checking
-                if res.url not in seen_urls:
-                    seen_urls.append(res.url)
+            if results:
+                for res in results:
+                    # Add to seen URLs regardless of match to avoid re-checking
+                    if res.url not in seen_urls:
+                        seen_urls.append(res.url)
 
-                if res.found_item:
-                    logger.info(f"   ✅ MATCH! {res.item_name}")
-                    notification_service.notify_match(res.item_name, res.price, res.url)
-                    found_something_new = True
-                else:
-                    logger.info(f"   ❌ {res.item_name} ({res.reasoning})")
+                    if res.found_item:
+                        logger.info(f"   ✅ MATCH! {res.item_name}")
+                        notification_service.notify_match(res.item_name, res.price, res.url)
+                        found_something_new = True
+                    else:
+                        logger.info(f"   ❌ {res.item_name} ({res.reasoning})")
 
     # 5. Save
     history_manager.save(seen_urls)

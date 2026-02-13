@@ -15,7 +15,10 @@ class HistoryManager:
         if os.path.exists(self.file_path):
             try:
                 with open(self.file_path, encoding="utf-8") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    if not isinstance(data, list):
+                        return []
+                    return data  # type: ignore
             except json.JSONDecodeError:
                 logger.warning(f"[WARNING] History file {self.file_path} corrupted. Starting fresh.")
                 return []
@@ -24,7 +27,7 @@ class HistoryManager:
                 return []
         return []
 
-    def save(self, history: list[str]):
+    def save(self, history: list[str]) -> None:
         """Saves the history of seen URLs."""
         try:
             with open(self.file_path, "w", encoding="utf-8") as f:
@@ -59,7 +62,7 @@ class GitManager:
         except subprocess.CalledProcessError:
             return False
 
-    def commit_and_push(self, message: str):
+    def commit_and_push(self, message: str) -> None:
         if not self.has_changes():
             logger.info("No changes to commit.")
             return

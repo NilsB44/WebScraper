@@ -110,7 +110,7 @@ class GeminiAnalyzer:
         """
         response = await self.generate_content_safe(prompt, SearchURLGenerator)
         if response and response.parsed:
-            results.extend(response.parsed.search_pages)
+            results.extend(response.parsed.search_pages)  # type: ignore
 
         return results
 
@@ -139,7 +139,7 @@ class GeminiAnalyzer:
 
         response = await self.generate_content_safe(prompt, BatchProductCheck)
         if response and response.parsed:
-            return response.parsed.results
+            return response.parsed.results  # type: ignore
 
         logger.error("❌ Batch analysis failed: All AI models returned errors (quota/overload).")
         return None
