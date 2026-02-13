@@ -25,8 +25,8 @@ else:
             for m in response:
                 # Check for 'generateContent' capability using the new attribute name
                 # Some versions use 'supported_actions', others just let us check the name
-                actions: list[str] = getattr(m, "supported_actions", []) or getattr(
-                    m, "supported_generation_methods", []
+                actions = cast(list[str], getattr(m, "supported_actions", [])) or cast(
+                    list[str], getattr(m, "supported_generation_methods", [])
                 )
 
                 if "generateContent" in actions or not actions:
