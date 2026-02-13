@@ -48,6 +48,6 @@ class NotificationService:
     def notify_error(self, message: str) -> None:
         """Sends an error notification."""
         try:
-            requests.post(f"https://ntfy.sh/{self.topic}", data=f"ERROR: {message}".encode("utf-8"), timeout=10)
+            requests.post(f"https://ntfy.sh/{self.topic}", data=f"ERROR: {message}".encode(), timeout=10)
         except Exception as e:
             logger.error(f"Failed to send error notification: {e}")
