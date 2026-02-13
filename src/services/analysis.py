@@ -75,53 +75,45 @@ class GeminiAnalyzer:
 
         return None
 
-    async def get_search_urls(self, item_name: str, target_sites: list[str]) -> list[SearchPageSource]:
-        sanitized_item = self._sanitize_input(item_name)
-        sanitized_sites = [self._sanitize_input(site) for site in target_sites if site]
+        async def get_search_urls(self, item_name: str, target_sites: list[str]) -> list[SearchPageSource]:
+        """
+        Generates search URLs. Prioritizes local templates to save Gemini tokens.
+        Only asks Gemini for sites without a local template.
+        """
+        results: list[SearchPageSource] = []
+        q: str = urllib.parse.quote_plus(item_name)
         
+        remaining_sites = []
+        for site in target_sites:
+            if site in self.SEARCH_TEMPLATES:
+                url = self.SEARCH_TEMPLATES[site].format(q=q)
+                results.append(SearchPageSource(site_name=site, search_url=url))
+            else:
+                remaining_sites.append(site)
+        
+        if not remaining_sites:
+            logger.info("✅ All search URLs generated from local templates (0 tokens used).")
+            return results
+
+        logger.info(f"🧠 Asking Gemini for search URLs for {len(remaining_sites)} unknown sites...")
+        sanitized_item = self._sanitize_input(item_name)
         prompt = f"""
         I want to buy a '{sanitized_item}'.
-        Generate direct search result URLs for these marketplaces: {', '.join(sanitized_sites)}.
-
-        CRITICAL URL RULES:
-        - Blocket: 'https://www.blocket.se/annonser/hela_sverige?q=...'
-        - Tradera: 'https://www.tradera.com/search?q=...'
-        - Kleinanzeigen: 'https://www.kleinanzeigen.de/s-suchanfrage.html?keywords=...'
-        - Hifitorget: 'https://hifitorget.se/index.php?mod=search&searchstring=...'
-        - eBay DE: 'https://www.ebay.de/sch/i.html?_nkw=...'
-        - DBA: 'https://www.dba.dk/soeg/?soeg=...'
-        - Finn: 'https://www.finn.no/bap/forsale/search.html?q=...'
-
-        Example Output:
+        Generate direct search result URLs for these marketplaces: {", ".join(remaining_sites)}.
+        Return exactly this JSON format:
         {{
           "search_pages": [
-            {{"site_name": "blocket.se", "search_url": "https://www.blocket.se/annonser/hela_sverige?q=XTZ+12.17+Edge+Subwoofer"}},
-            ...
+            {{"site_name": "site.com", "search_url": "https://site.com/search?q=..."}}
           ]
         }}
-
-        Return exactly the requested JSON format.
         """
         response = await self.generate_content_safe(prompt, SearchURLGenerator)
-        
-        results: list[SearchPageSource] = []
         if response and response.parsed:
-            results = response.parsed.search_pages
+            results.extend(response.parsed.search_pages)
             
-        if not results:
-            logger.warning("⚠️ Gemini failed to generate URLs. Using local heuristics failover.")
-            # Secure URL encoding for query parameters
-            q: str = urllib.parse.quote_plus(sanitized_item)
-            for site in target_sites:
-                if site in self.SEARCH_TEMPLATES:
-                    url: str = self.SEARCH_TEMPLATES[site].format(q=q)
-                    results.append(SearchPageSource(site_name=site, search_url=url))
-                else:
-                    logger.warning(f"   ⚠️ No local failover template for site: {site}")
-                    
         return results
 
-    async def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck]:
+    async def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck] | None:
         if not ads:
             return []
 
@@ -150,4 +142,6 @@ class GeminiAnalyzer:
         response = await self.generate_content_safe(prompt, BatchProductCheck)
         if response and response.parsed:
             return response.parsed.results
-        return []
+        
+        logger.error("❌ Batch analysis failed: All AI models returned errors (quota/overload).")
+        return None
