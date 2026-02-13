@@ -1,3 +1,4 @@
+import sys
 import asyncio
 import logging
 
@@ -31,7 +32,7 @@ async def main():
 
     # 1. Plan
     logger.info("🧠 Asking Gemini to generate search URLs...")
-    search_pages = analyzer.get_search_urls(settings.item_name, settings.target_sites)
+    search_pages = await analyzer.get_search_urls(settings.item_name, settings.target_sites)
     logger.info(f"📍 Agent generated {len(search_pages)} paths.")
 
     # 2. Test Notification (only on fresh start)
@@ -51,35 +52,37 @@ async def main():
 
             try:
                 # Use arun directly as it was most reliable
-                result = await crawler.arun(
-                    url=page.search_url,
-                    wait_until="networkidle",
-                    delay_before_return_html=5.0,
-                    bypass_cache=True
-                )
+                result = await crawler.arun(url=page.search_url, config=fetcher.run_config)
 
                 if not result.success:
                     logger.warning("⚠️ Failed to load list page")
                     continue
 
-                candidates = []
-                # Check internal links
+                all_links = []
                 if result.links and "internal" in result.links:
-                    for link in result.links["internal"]:
-                        href = link.get("href", "")
-                        full_url = fetcher.fix_relative_url(page.search_url, href)
+                    all_links = [l.get("href", "") for l in result.links["internal"]]
+                
+                total_found = len(all_links)
+                ad_candidates = []
+                
+                for href in all_links:
+                    full_url = fetcher.fix_relative_url(page.search_url, href)
+                    if fetcher.is_valid_ad_link(full_url):
+                        ad_candidates.append(full_url)
+                
+                ad_candidates = list(set(ad_candidates)) # Deduplicate URLs
+                irrelevant_count = total_found - len(ad_candidates)
+                
+                new_candidates = [c for c in ad_candidates if c not in seen_urls]
+                seen_count = len(ad_candidates) - len(new_candidates)
 
-                        if fetcher.is_valid_ad_link(full_url):
-                            candidates.append(full_url)
-
-                new_candidates = [c for c in set(candidates) if c not in seen_urls]
+                logger.info(f"   📊 Results: {total_found} links found | {irrelevant_count} irrelevant | {seen_count} already seen | {len(new_candidates)} NEW ads")
 
                 if not new_candidates:
-                    logger.info("   -> No new ads found.")
                     continue
 
                 num_to_check = min(len(new_candidates), 5)
-                logger.info(f"   -> Found {len(new_candidates)} new ads. Queuing TOP {num_to_check}...")
+                logger.info(f"   -> Queuing TOP {num_to_check} for analysis...")
 
                 for ad_url in new_candidates[:num_to_check]:
                     content = await fetcher.fetch_ad_content(crawler, ad_url)
@@ -101,7 +104,7 @@ async def main():
         # 4. Batch Analyze
         if ads_to_analyze:
             logger.info(f"🧠 Sending BATCH analysis for {len(ads_to_analyze)} items...")
-            results = analyzer.analyze_batch(settings.item_name, ads_to_analyze)
+            results = await analyzer.analyze_batch(settings.item_name, ads_to_analyze)
 
             for res in results:
                 # Add to seen URLs regardless of match to avoid re-checking
@@ -133,3 +136,4 @@ if __name__ == "__main__":
         logger.info("🛑 Scraper stopped by user.")
     except Exception as e:
         logger.critical(f"🔥 Critical failure: {e}")
+        sys.exit(1)
