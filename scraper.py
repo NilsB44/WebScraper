@@ -35,8 +35,6 @@ async def main() -> None:
     seen_urls = storage_service.load()
     logger.info(f"📜 Loaded {len(seen_urls)} previously seen items.")
 
-    found_something_new = False
-
     async with AsyncWebCrawler(config=content_fetcher.browser_config) as crawler:
         for task in settings.tasks:
             logger.info(f"\n⚡ Starting Task: {task.name}")
@@ -94,26 +92,28 @@ async def main() -> None:
                 logger.info(f"   🧠 Verifying {len(ads_to_analyze)} candidates...")
                 results = await analyzer.analyze_batch(task.search_query, ads_to_analyze)
 
+                confirmed_hits = []
                 if results:
-                    confirmed_hits = []
                     for res in results:
                         if res.found_item:
                             logger.info(f"      🎉 MATCH! {res.item_name} - {res.price}")
                             notification_service.notify_match(res.item_name, res.price, res.url)
                             confirmed_hits.append(res)
-                            found_something_new = True
                         else:
                             logger.info(f"      ❌ Skip: {res.item_name} ({res.reasoning})")
 
-                    # Save verified hits
-                    presenter.save_results(confirmed_hits, task.name)
+                # Save verified hits (or update scan status)
+                presenter.save_results(confirmed_hits, task.name, total_scanned=len(ads_to_analyze))
+            else:
+                # Update status even if no candidates
+                presenter.save_results([], task.name, total_scanned=0)
 
             logger.info(f"✨ Task '{task.name}' finished.")
 
     storage_service.save(seen_urls)
 
-    if found_something_new and settings.ci_mode:
-        git_service.commit_and_push("update: seen items and results")
+    if settings.ci_mode:
+        git_service.commit_and_push("chore: update seen items and results")
 
     logger.info("💤 Scraper finished successfully.")
 
