@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     gemini_api_key: str = Field(..., description="API Key for Google Gemini")
-    
+
     # Notification
     ntfy_topic: str = Field(
         default="gemini_and_nils_subscribtion_service", description="Topic for ntfy.sh notifications"
@@ -21,9 +21,7 @@ class Settings(BaseSettings):
     # Tasks
     tasks: list[ScrapeTask] = [
         ScrapeTask(
-            name="XTZ Subwoofer",
-            search_query="XTZ 12.17 Edge Subwoofer",
-            description="Find high-end subwoofers."
+            name="XTZ Subwoofer", search_query="XTZ 12.17 Edge Subwoofer", description="Find high-end subwoofers."
         ),
         ScrapeTask(
             name="Bull Sculpture",
@@ -31,8 +29,8 @@ class Settings(BaseSettings):
             max_price=2000,
             currency="SEK",
             description="Find bull sculptures/statues under 2000 SEK.",
-            fuzzy_search=True
-        )
+            fuzzy_search=True,
+        ),
     ]
 
     target_sites: list[str] = Field(

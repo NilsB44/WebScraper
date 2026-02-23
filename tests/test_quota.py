@@ -1,11 +1,13 @@
-import os
 import logging
+import os
+
 import pytest
 from google import genai
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
+
 
 @pytest.mark.skip(reason="Requires real API key")
 def test_quota_check() -> None:

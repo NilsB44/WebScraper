@@ -8,8 +8,8 @@ from src.config import settings
 from src.services.analysis import GeminiAnalyzer
 from src.services.crawler import ContentFetcher
 from src.services.notification import NotificationService
-from src.services.storage import GitManager, HistoryManager
 from src.services.presenter import ResultsPresenter
+from src.services.storage import GitManager, HistoryManager
 
 # Configure logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -38,7 +38,6 @@ async def main() -> None:
     found_something_new = False
 
     async with AsyncWebCrawler(config=content_fetcher.browser_config) as crawler:
-        
         for task in settings.tasks:
             logger.info(f"\n⚡ Starting Task: {task.name}")
             notification_service.notify_start(task.name)
@@ -48,7 +47,7 @@ async def main() -> None:
             if task.fuzzy_search:
                 variations = await analyzer.generate_query_variations(task.search_query)
                 queries.extend([v for v in variations if v not in queries])
-            
+
             logger.info(f"   🔎 Searching for queries: {', '.join(queries)}")
 
             all_search_urls = []
@@ -61,13 +60,13 @@ async def main() -> None:
             # B. Agentic Search Page Analysis
             for source in all_search_urls:
                 logger.info(f"   🌐 Checking: {source.search_url}")
-                
+
                 list_content = await content_fetcher.fetch_ad_content(crawler, source.search_url)
                 if not list_content:
                     continue
 
                 candidates = await analyzer.analyze_search_page(list_content, task)
-                
+
                 if not candidates:
                     logger.info("   ℹ️ No candidates found on this page.")
                     continue
@@ -78,20 +77,16 @@ async def main() -> None:
                 for cand in candidates:
                     if cand.url in seen_urls:
                         continue
-                    
+
                     full_url = content_fetcher.fix_relative_url(source.search_url, cand.url)
                     if not content_fetcher.is_valid_ad_link(full_url) or full_url in seen_urls:
                         continue
 
                     logger.info(f"      🕵️ Deep diving: {cand.title} ({cand.price})")
-                    
+
                     ad_content = await content_fetcher.fetch_ad_content(crawler, full_url)
                     if ad_content:
-                        ads_to_analyze.append({
-                            "site": source.site_name,
-                            "url": full_url,
-                            "content": ad_content
-                        })
+                        ads_to_analyze.append({"site": source.site_name, "url": full_url, "content": ad_content})
                         seen_urls.append(full_url)
 
             # D. Batch Verify
@@ -109,14 +104,14 @@ async def main() -> None:
                             found_something_new = True
                         else:
                             logger.info(f"      ❌ Skip: {res.item_name} ({res.reasoning})")
-                    
+
                     # Save verified hits
                     presenter.save_results(confirmed_hits, task.name)
 
             logger.info(f"✨ Task '{task.name}' finished.")
 
     storage_service.save(seen_urls)
-    
+
     if found_something_new and settings.ci_mode:
         git_service.commit_and_push("update: seen items and results")
 

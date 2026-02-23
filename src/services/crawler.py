@@ -31,15 +31,12 @@ class ContentFetcher:
 
         try:
             # Wrap in timeout just in case
-            result = await asyncio.wait_for(
-                crawler.arun(url=url, config=self.run_config),
-                timeout=45.0
-            )
+            result = await asyncio.wait_for(crawler.arun(url=url, config=self.run_config), timeout=45.0)
             extracted_content = cast(str | None, result.markdown or result.html)
 
             if extracted_content and len(extracted_content) > 300:
                 return extracted_content[:MAX_CONTENT_LENGTH]
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning(f"   ⏱️ Timeout fetching {url}")
         except Exception as e:
             logger.warning(f"   ⚠️ Crawler failed for {url}: {e}")

@@ -1,22 +1,21 @@
-from typing import cast
 import asyncio
 import logging
 import re
 import urllib.parse
-from typing import Any
+from typing import Any, cast
 
 from google import genai
 from pydantic import BaseModel
 
 from src.models import (
-    BatchProductCheck, 
-    ProductCheck, 
-    SearchPageSource, 
-    SearchURLGenerator, 
-    CandidateItem, 
-    SearchPageAnalysis,
+    BatchProductCheck,
+    CandidateItem,
+    ProductCheck,
+    QueryVariations,
     ScrapeTask,
-    QueryVariations
+    SearchPageAnalysis,
+    SearchPageSource,
+    SearchURLGenerator,
 )
 
 logger = logging.getLogger(__name__)
@@ -129,12 +128,11 @@ class GeminiAnalyzer:
 
     async def analyze_search_page(self, content: str, task: ScrapeTask) -> list[CandidateItem]:
         logger.info(f"   🧠 Agentic Analysis of search page for '{task.name}'...")
-        
+
         price_instruction = ""
         if task.max_price:
             price_instruction = (
-                f"IMPORTANT: Filter out any items strictly MORE expensive than "
-                f"{task.max_price} {task.currency}."
+                f"IMPORTANT: Filter out any items strictly MORE expensive than {task.max_price} {task.currency}."
             )
 
         prompt = f"""
@@ -159,7 +157,7 @@ class GeminiAnalyzer:
         if response and response.parsed:
             candidates = cast(list[CandidateItem], response.parsed.candidates)
             return [c for c in candidates if c.confidence_score > 60]
-        
+
         return []
 
     async def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck] | None:
