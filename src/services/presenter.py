@@ -129,7 +129,7 @@ class ResultsPresenter:
         <h1>🛒 Scraper Dashboard</h1>
 
         <div class="stats">
-            <p><strong>Last Scan:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            <p><strong>Last Scan:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
             <p><strong>Status:</strong> {last_task} completed with {last_count} new hits (from {total} candidates).</p>
         </div>
 

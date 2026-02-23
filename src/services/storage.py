@@ -55,9 +55,7 @@ class GitManager:
 
     def has_changes(self) -> bool:
         try:
-            result = subprocess.run(
-                ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
-            )
+            result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, check=True)
             return bool(result.stdout.strip())
         except subprocess.CalledProcessError:
             return False
