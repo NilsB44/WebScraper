@@ -31,10 +31,24 @@ class Settings(BaseSettings):
             description="Find bull sculptures/statues under 2000 SEK.",
             fuzzy_search=True,
         ),
+        ScrapeTask(
+            name="Confirmed XTZ Hit",
+            search_query="https://www.hifishark.com/model/xtz-sub-12-17-edge",
+            description="DIRECT URL for testing. Extract items from this page.",
+        ),
     ]
 
     target_sites: list[str] = Field(
-        default=["blocket.se", "tradera.com", "hifitorget.se", "kleinanzeigen.de", "ebay.de", "dba.dk", "finn.no"],
+        default=[
+            "blocket.se",
+            "tradera.com",
+            "hifitorget.se",
+            "kleinanzeigen.de",
+            "ebay.de",
+            "dba.dk",
+            "finn.no",
+            "hifishark.com",
+        ],
         description="List of sites to search",
     )
 
