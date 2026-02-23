@@ -19,30 +19,31 @@ class ResultsPresenter:
         os.makedirs(data_dir, exist_ok=True)
         os.makedirs("public", exist_ok=True)
 
-    def save_results(self, new_hits: list[ProductCheck], task_name: str) -> None:
-        if not new_hits:
-            return
-
+    def save_results(self, new_hits: list[ProductCheck], task_name: str, total_scanned: int = 0) -> None:
         # 1. Load existing JSON
         history = self._load_json()
 
-        # 2. Append new hits
+        # 2. Append new hits if any
         timestamp = datetime.now().isoformat()
-        for hit in new_hits:
-            entry = hit.model_dump()
-            entry["task"] = task_name
-            entry["timestamp"] = timestamp
-            history.append(entry)
+        if new_hits:
+            for hit in new_hits:
+                entry = hit.model_dump()
+                entry["task"] = task_name
+                entry["timestamp"] = timestamp
+                history.append(entry)
 
         # 3. Save JSON
         with open(self.json_path, "w", encoding="utf-8") as f:
             json.dump(history, f, indent=2, ensure_ascii=False)
 
         # 4. Generate Views
-        self._generate_markdown(history)
-        self._generate_html(history)
+        self._generate_markdown(history, last_task=task_name, last_count=len(new_hits), total=total_scanned)
+        self._generate_html(history, last_task=task_name, last_count=len(new_hits), total=total_scanned)
 
-        logger.info(f"💾 Saved {len(new_hits)} new hits to history and updated views.")
+        if new_hits:
+            logger.info(f"💾 Saved {len(new_hits)} new hits to history and updated views.")
+        else:
+            logger.info("ℹ️ No new hits found, but views updated with latest scan timestamp.")
 
     def _load_json(self) -> list[dict[str, Any]]:
         if not os.path.exists(self.json_path):
@@ -56,12 +57,20 @@ class ResultsPresenter:
             logger.error(f"Failed to load history: {e}")
             return []
 
-    def _generate_markdown(self, history: list[dict[str, Any]]) -> None:
+    def _generate_markdown(
+        self, history: list[dict[str, Any]], last_task: str = "", last_count: int = 0, total: int = 0
+    ) -> None:
         # Sort by timestamp desc
         sorted_history = sorted(history, key=lambda x: x.get("timestamp", ""), reverse=True)
 
         md_content = "# 🛒 Scraper Results\n\n"
-        md_content += f"**Last Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        md_content += f"**Last Scan:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        if last_task:
+            md_content += f"- **Task:** {last_task}\n"
+            md_content += f"- **New Hits:** {last_count}\n"
+            md_content += f"- **Candidates Checked:** {total}\n\n"
+
+        md_content += "## 🏆 Confirmed Hits\n\n"
         md_content += "| Date | Task | Item | Price | Link | Reasoning |\n"
         md_content += "|---|---|---|---|---|---|\n"
 
@@ -78,7 +87,9 @@ class ResultsPresenter:
         with open(self.md_path, "w", encoding="utf-8") as f:
             f.write(md_content)
 
-    def _generate_html(self, history: list[dict[str, Any]]) -> None:
+    def _generate_html(
+        self, history: list[dict[str, Any]], last_task: str = "", last_count: int = 0, total: int = 0
+    ) -> None:
         sorted_history = sorted(history, key=lambda x: x.get("timestamp", ""), reverse=True)
 
         rows = ""
@@ -104,12 +115,25 @@ class ResultsPresenter:
     <style>
         body {{ padding: 20px; }}
         .badge {{ background: #333; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; }}
+        .stats {{
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #333;
+        }}
     </style>
 </head>
 <body>
     <main class="container">
-        <h1>🛒 Scraper Hits</h1>
-        <p>Latest found items from agentic scraping tasks.</p>
+        <h1>🛒 Scraper Dashboard</h1>
+
+        <div class="stats">
+            <p><strong>Last Scan:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            <p><strong>Status:</strong> {last_task} completed with {last_count} new hits (from {total} candidates).</p>
+        </div>
+
+        <h2>🏆 Confirmed Hits</h2>
         <figure>
             <table role="grid">
                 <thead>

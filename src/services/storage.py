@@ -56,7 +56,7 @@ class GitManager:
     def has_changes(self) -> bool:
         try:
             result = subprocess.run(
-                ["git", "status", "--porcelain", self.file_path], capture_output=True, text=True, check=True
+                ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
             )
             return bool(result.stdout.strip())
         except subprocess.CalledProcessError:
@@ -68,16 +68,25 @@ class GitManager:
             return
 
         logger.info("[GIT] Committing changes to Git...")
-        # Configure local user if not present (optional, but good for CI)
+        # Configure local user
         self._run_git_command(["config", "user.name", self.user_name])
         self._run_git_command(["config", "user.email", self.user_email])
 
-        if self._run_git_command(["add", self.file_path]):
+        # Ensure we are on a branch and up to date
+        self._run_git_command(["fetch", "origin"])
+
+        if self._run_git_command(["add", "."]):
             if self._run_git_command(["commit", "-m", message]):
-                if self._run_git_command(["push"]):
-                    logger.info("[GIT] History updated and pushed to repo.")
+                # Try to push, if it fails due to being behind, try to pull rebase and push again
+                if not self._run_git_command(["push"]):
+                    logger.warning("   ⚠️ Push failed, trying pull --rebase...")
+                    self._run_git_command(["pull", "--rebase", "origin", "main"])
+                    if self._run_git_command(["push"]):
+                        logger.info("[GIT] History updated and pushed after rebase.")
+                    else:
+                        logger.error("❌ Failed to push changes even after rebase.")
                 else:
-                    logger.error("❌ Failed to push changes.")
+                    logger.info("[GIT] History updated and pushed to repo.")
             else:
                 logger.error("❌ Failed to commit changes.")
         else:
