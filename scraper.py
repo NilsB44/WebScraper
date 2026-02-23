@@ -5,6 +5,9 @@ import sys
 from crawl4ai import AsyncWebCrawler  # type: ignore
 
 from src.config import settings
+from src.models import (
+    SearchPageSource,
+)
 from src.services.analysis import GeminiAnalyzer
 from src.services.crawler import ContentFetcher
 from src.services.notification import NotificationService
@@ -40,18 +43,22 @@ async def main() -> None:
             logger.info(f"\n⚡ Starting Task: {task.name}")
             notification_service.notify_start(task.name)
 
-            # A. Generate Queries (Fuzzy)
-            queries = [task.search_query]
-            if task.fuzzy_search:
-                variations = await analyzer.generate_query_variations(task.search_query)
-                queries.extend([v for v in variations if v not in queries])
+            # A. Generate Queries / Direct URLs
+            if task.search_query.startswith("http"):
+                logger.info(f"   🔗 Direct URL detected: {task.search_query}")
+                all_search_urls = [SearchPageSource(site_name="Direct", search_url=task.search_query)]
+            else:
+                queries = [task.search_query]
+                if task.fuzzy_search:
+                    variations = await analyzer.generate_query_variations(task.search_query)
+                    queries.extend([v for v in variations if v not in queries])
 
-            logger.info(f"   🔎 Searching for queries: {', '.join(queries)}")
+                logger.info(f"   🔎 Searching for queries: {', '.join(queries)}")
 
-            all_search_urls = []
-            for q in queries:
-                urls = await analyzer.get_search_urls(q, settings.target_sites)
-                all_search_urls.extend(urls)
+                all_search_urls = []
+                for q in queries:
+                    urls = await analyzer.get_search_urls(q, settings.target_sites)
+                    all_search_urls.extend(urls)
 
             ads_to_analyze: list[dict[str, str]] = []
 
@@ -113,7 +120,7 @@ async def main() -> None:
     storage_service.save(seen_urls)
 
     if settings.ci_mode:
-        git_service.commit_and_push("chore: update seen items and results")
+        git_service.commit_and_push("chore: update seen items and results", branch="scraper-results")
 
     logger.info("💤 Scraper finished successfully.")
 
