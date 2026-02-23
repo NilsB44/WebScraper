@@ -56,7 +56,7 @@ class GitManager:
     def has_changes(self) -> bool:
         try:
             result = subprocess.run(
-                ["git", "status", "--porcelain", self.file_path], capture_output=True, text=True, check=True
+                ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
             )
             return bool(result.stdout.strip())
         except subprocess.CalledProcessError:
@@ -72,7 +72,7 @@ class GitManager:
         self._run_git_command(["config", "user.name", self.user_name])
         self._run_git_command(["config", "user.email", self.user_email])
 
-        if self._run_git_command(["add", self.file_path]):
+        if self._run_git_command(["add", "."]):
             if self._run_git_command(["commit", "-m", message]):
                 if self._run_git_command(["push"]):
                     logger.info("[GIT] History updated and pushed to repo.")
