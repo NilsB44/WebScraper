@@ -21,17 +21,16 @@ class Settings(BaseSettings):
     # Tasks
     tasks: list[ScrapeTask] = [
         ScrapeTask(
-            name="XTZ Subwoofer",
-            search_query="XTZ 12.17 Edge Subwoofer",
-            description="Find high-end subwoofers."
+            name="XTZ Subwoofer", search_query="XTZ 12.17 Edge Subwoofer", description="Find high-end subwoofers."
         ),
         ScrapeTask(
             name="Bull Sculpture",
             search_query="Fighting bull sculpture",
             max_price=2000,
             currency="SEK",
-            description="Find bull sculptures/statues under 2000 SEK."
-        )
+            description="Find bull sculptures/statues under 2000 SEK.",
+            fuzzy_search=True,
+        ),
     ]
 
     target_sites: list[str] = Field(
