@@ -1,20 +1,22 @@
+from typing import cast
 import asyncio
 import logging
 import re
 import urllib.parse
-from typing import Any, cast
+from typing import Any
 
 from google import genai
 from pydantic import BaseModel
 
 from src.models import (
-    BatchProductCheck,
-    CandidateItem,
-    ProductCheck,
-    ScrapeTask,
+    BatchProductCheck, 
+    ProductCheck, 
+    SearchPageSource, 
+    SearchURLGenerator, 
+    CandidateItem, 
     SearchPageAnalysis,
-    SearchPageSource,
-    SearchURLGenerator,
+    ScrapeTask,
+    QueryVariations
 )
 
 logger = logging.getLogger(__name__)
@@ -38,15 +40,9 @@ class GeminiAnalyzer:
         self.client = genai.Client(api_key=api_key)
 
     def _sanitize_input(self, text: str, max_length: int = 200) -> str:
-        """
-        Sanitize input using an allow-list of safe characters.
-        Allow-list: alphanumeric, whitespace, and & + / . , ! ? ( ) @ # $ € £ k r and -
-        """
         if not text:
             return ""
-        # Remove characters not in the allow-list
         clean = re.sub(r"[^a-zA-Z0-9\s&+/.,!?()@#$€£kr-]", "", text)
-        # Prevent prompt injection by neutralizing potential delimiters
         clean = clean.replace("---", " - ")
         return clean[:max_length].strip()
 
@@ -61,7 +57,8 @@ class GeminiAnalyzer:
 
         for i, model in enumerate(models_to_try):
             try:
-                delay = 2 + (i * 2)
+                # Jittered backoff to avoid synchronized spikes
+                delay = (i * 5) + 2
                 await asyncio.sleep(delay)
 
                 response = await self.client.aio.models.generate_content(
@@ -76,7 +73,7 @@ class GeminiAnalyzer:
             except Exception as e:
                 err = str(e).lower()
                 if any(x in err for x in ["429", "quota", "503", "overload"]):
-                    logger.warning(f"   [QUOTA] {model} quota/overload. Trying next...")
+                    logger.warning(f"   [QUOTA] {model} overloaded. Retrying with next model...")
                     continue
                 elif "404" in err:
                     continue
@@ -84,11 +81,20 @@ class GeminiAnalyzer:
 
         return None
 
+    async def generate_query_variations(self, query: str) -> list[str]:
+        """Generates fuzzy variations of a search query."""
+        logger.info(f"   🧠 Generating fuzzy variations for: {query}...")
+        prompt = f"""
+        Generate 3-4 short, effective search query variations for finding this item second-hand: "{query}".
+        Focus on common misspellings, partial names, or alternative terms.
+        Return a JSON object with a 'variations' list of strings.
+        """
+        response = await self.generate_content_safe(prompt, QueryVariations)
+        if response and response.parsed:
+            return cast(list[str], response.parsed.variations)
+        return [query]
+
     async def get_search_urls(self, item_name: str, target_sites: list[str]) -> list[SearchPageSource]:
-        """
-        Generates search URLs. Prioritizes local templates to save Gemini tokens.
-        Only asks Gemini for sites without a local template.
-        """
         results: list[SearchPageSource] = []
         q: str = urllib.parse.quote_plus(item_name)
 
@@ -101,7 +107,6 @@ class GeminiAnalyzer:
                 remaining_sites.append(site)
 
         if not remaining_sites:
-            logger.info("✅ All search URLs generated from local templates (0 tokens used).")
             return results
 
         logger.info(f"🧠 Asking Gemini for search URLs for {len(remaining_sites)} unknown sites...")
@@ -123,12 +128,8 @@ class GeminiAnalyzer:
         return results
 
     async def analyze_search_page(self, content: str, task: ScrapeTask) -> list[CandidateItem]:
-        """
-        First-Pass Analysis: Looks at the raw text of a search result page and
-        identifies items that match the task criteria (title + price).
-        """
         logger.info(f"   🧠 Agentic Analysis of search page for '{task.name}'...")
-
+        
         price_instruction = ""
         if task.max_price:
             price_instruction = (
@@ -147,9 +148,9 @@ class GeminiAnalyzer:
         --------------------------------------------------
 
         INSTRUCTIONS:
-        1. Identify items in the list that match my search query.
-        2. Ignore "Wanted" or "Buying" ads (I want to BUY, not sell).
-        3. Ignore obvious accessories if I'm looking for the main unit (unless query implies otherwise).
+        1. Identify items in the list that match my search query or are relevant variations.
+        2. Ignore "Wanted" or "Buying" ads.
+        3. Ignore obvious accessories unless query implies otherwise.
         4. {price_instruction}
         5. Return a JSON list of candidates. Confidence 0-100.
         """
@@ -157,13 +158,8 @@ class GeminiAnalyzer:
         response = await self.generate_content_safe(prompt, SearchPageAnalysis)
         if response and response.parsed:
             candidates = cast(list[CandidateItem], response.parsed.candidates)
-            # Post-processing filter to be double sure
-            filtered = []
-            for c in candidates:
-                if c.confidence_score > 60:
-                    filtered.append(c)
-            return filtered
-
+            return [c for c in candidates if c.confidence_score > 60]
+        
         return []
 
     async def analyze_batch(self, item_name: str, ads: list[dict[str, str]]) -> list[ProductCheck] | None:
@@ -193,5 +189,4 @@ class GeminiAnalyzer:
         if response and response.parsed:
             return cast(list[ProductCheck] | None, response.parsed.results)
 
-        logger.error("❌ Batch analysis failed: All AI models returned errors (quota/overload).")
         return None

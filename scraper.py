@@ -35,95 +35,82 @@ async def main() -> None:
 
     found_something_new = False
 
-    # Start the browser session ONCE for efficiency
     async with AsyncWebCrawler(config=content_fetcher.browser_config) as crawler:
-
-        # 2. Iterate through Tasks (Multi-Path)
+        
         for task in settings.tasks:
             logger.info(f"\n⚡ Starting Task: {task.name}")
-            logger.info(f"   🔎 Query: {task.search_query}")
-
             notification_service.notify_start(task.name)
 
-            # A. Get Search URLs
-            try:
-                search_urls = await analyzer.get_search_urls(task.search_query, settings.target_sites)
-            except Exception as e:
-                logger.error(f"   ❌ Failed to generate search URLs for {task.name}: {e}")
-                continue
+            # A. Generate Queries (Fuzzy)
+            queries = [task.search_query]
+            if task.fuzzy_search:
+                variations = await analyzer.generate_query_variations(task.search_query)
+                queries.extend([v for v in variations if v not in queries])
+            
+            logger.info(f"   🔎 Searching for queries: {', '.join(queries)}")
+
+            all_search_urls = []
+            for q in queries:
+                urls = await analyzer.get_search_urls(q, settings.target_sites)
+                all_search_urls.extend(urls)
 
             ads_to_analyze: list[dict[str, str]] = []
 
             # B. Agentic Search Page Analysis
-            for source in search_urls:
-                logger.info(f"   🌐 Checking list page: {source.search_url}")
-
-                # Fetch content of the SEARCH RESULTS page
+            for source in all_search_urls:
+                logger.info(f"   🌐 Checking: {source.search_url}")
+                
                 list_content = await content_fetcher.fetch_ad_content(crawler, source.search_url)
                 if not list_content:
-                    logger.warning(f"   ⚠️ Failed to fetch list page: {source.search_url}")
                     continue
 
-                # Ask Gemini to pick candidates from this list
                 candidates = await analyzer.analyze_search_page(list_content, task)
-
+                
                 if not candidates:
-                    logger.info("   👀 No interesting candidates found on this page.")
                     continue
 
-                logger.info(f"   ✅ Agent selected {len(candidates)} candidates for deep dive.")
+                logger.info(f"   ✅ Agent selected {len(candidates)} candidates.")
 
-                # C. Fetch Details for Selected Candidates
+                # C. Deep Dive
                 for cand in candidates:
                     if cand.url in seen_urls:
                         continue
-
-                    # Double check url validity
-                    if not content_fetcher.is_valid_ad_link(cand.url):
-                        # Sometimes LLM extracts partial URLs or junk
-                        full_url = content_fetcher.fix_relative_url(source.search_url, cand.url)
-                        if not content_fetcher.is_valid_ad_link(full_url):
-                            continue
-                        cand.url = full_url
-
-                    if cand.url in seen_urls:
+                    
+                    full_url = content_fetcher.fix_relative_url(source.search_url, cand.url)
+                    if not content_fetcher.is_valid_ad_link(full_url) or full_url in seen_urls:
                         continue
 
                     logger.info(f"      🕵️ Deep diving: {cand.title} ({cand.price})")
-
-                    # Fetch Ad Content
-                    ad_content = await content_fetcher.fetch_ad_content(crawler, cand.url)
+                    
+                    ad_content = await content_fetcher.fetch_ad_content(crawler, full_url)
                     if ad_content:
                         ads_to_analyze.append({
                             "site": source.site_name,
-                            "url": cand.url,
+                            "url": full_url,
                             "content": ad_content
                         })
-                        seen_urls.append(cand.url) # Mark as seen so we don't re-check next run
+                        seen_urls.append(full_url)
 
-            # D. Batch Verify (Final Guardrail)
+            # D. Batch Verify
             if ads_to_analyze:
-                logger.info(f"   🧠 Verifying {len(ads_to_analyze)} candidates for {task.name}...")
+                logger.info(f"   🧠 Verifying {len(ads_to_analyze)} candidates...")
                 results = await analyzer.analyze_batch(task.search_query, ads_to_analyze)
 
                 if results:
                     for res in results:
                         if res.found_item:
-                            logger.info(f"      🎉 CONFIRMED MATCH! {res.item_name} - {res.price}")
+                            logger.info(f"      🎉 MATCH! {res.item_name} - {res.price}")
                             notification_service.notify_match(res.item_name, res.price, res.url)
                             found_something_new = True
                         else:
-                            logger.info(f"      ❌ False positive: {res.item_name} ({res.reasoning})")
+                            logger.info(f"      ❌ Skip: {res.item_name} ({res.reasoning})")
 
             logger.info(f"✨ Task '{task.name}' finished.")
 
-    # 3. Save & Commit
     storage_service.save(seen_urls)
-
+    
     if found_something_new and settings.ci_mode:
-        git_service.commit_and_push("update: seen items (found new matches)")
-    elif settings.ci_mode:
-        git_service.commit_and_push("update: seen items (sync)")
+        git_service.commit_and_push("update: seen items")
 
     logger.info("💤 Scraper finished successfully.")
 

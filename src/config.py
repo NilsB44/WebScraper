@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     gemini_api_key: str = Field(..., description="API Key for Google Gemini")
-
+    
     # Notification
     ntfy_topic: str = Field(
         default="gemini_and_nils_subscribtion_service", description="Topic for ntfy.sh notifications"
@@ -30,7 +30,8 @@ class Settings(BaseSettings):
             search_query="Fighting bull sculpture",
             max_price=2000,
             currency="SEK",
-            description="Find bull sculptures/statues under 2000 SEK."
+            description="Find bull sculptures/statues under 2000 SEK.",
+            fuzzy_search=True
         )
     ]
 

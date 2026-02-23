@@ -1,26 +1,30 @@
 import os
+import logging
 from typing import cast
-
 from google import genai
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
 api_key = os.environ.get("GEMINI_API_KEY")
 
 if not api_key:
-    print("❌ API Key not found! Run 'export GEMINI_API_KEY=...' first.")
+    logger.error("❌ API Key not found! Run 'export GEMINI_API_KEY=...' first.")
 else:
-    print(f"🔑 Key found: {api_key[:5]}...{api_key[-3:]}")
+    logger.info(f"🔑 Key found: {api_key[:5]}...{api_key[-3:]}")
 
     try:
         client = genai.Client(api_key=api_key)
-        print("\n📡 Connecting to Google AI...")
+        logger.info("\n📡 Connecting to Google AI...")
 
         # New SDK list call
         response = client.models.list()
 
-        print("\n✅ AVAILABLE MODELS:")
+        logger.info("\n✅ AVAILABLE MODELS:")
         found_flash = False
 
-        # Loop through models and print names safely
+        # Loop through models and logger.info names safely
         if response:
             for m in response:
                 # Check for 'generateContent' capability using the new attribute name
@@ -31,13 +35,13 @@ else:
 
                 if "generateContent" in actions or not actions:
                     model_name = cast(str, getattr(m, "name", str(m)))
-                    print(f" - {model_name}")
+                    logger.info(f" - {model_name}")
                     if model_name and "flash" in model_name and "1.5" in model_name:
                         found_flash = True
 
         if not found_flash:
-            print("\n⚠️ WARNING: No 'gemini-1.5-flash' alias found.")
-            print("👉 Try using one of the exact names listed above (e.g. 'gemini-1.5-flash-001').")
+            logger.warning("\n⚠️ WARNING: No 'gemini-1.5-flash' alias found.")
+            logger.info("👉 Try using one of the exact names listed above (e.g. 'gemini-1.5-flash-001').")
 
     except Exception as e:
-        print(f"\n❌ CONNECTION ERROR: {e}")
+        logger.error(f"\n❌ CONNECTION ERROR: {e}")

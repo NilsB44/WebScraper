@@ -1,3 +1,4 @@
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -42,10 +43,15 @@ class AdContent(BaseModel):
     site: str
 
 
+class QueryVariations(BaseModel):
+    variations: list[str]
+
+
 class ScrapeTask(BaseModel):
     """Defines a specific scraping job."""
     name: str
     search_query: str
-    max_price: int | None = None
+    max_price: Optional[int] = None
     currency: str = "SEK"
     description: str = ""
+    fuzzy_search: bool = False
