@@ -2,4 +2,4 @@ venv/
 .env
 __pycache__/
 *.pyc
-seen_items.json
+# seen_items.json  <-- Allowed for autonomous state
