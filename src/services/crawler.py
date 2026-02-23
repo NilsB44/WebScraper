@@ -8,7 +8,7 @@ from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig
 
 logger = logging.getLogger(__name__)
 
-MAX_CONTENT_LENGTH = 20000
+MAX_CONTENT_LENGTH = 150000
 
 
 class ContentFetcher:

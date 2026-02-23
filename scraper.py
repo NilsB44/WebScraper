@@ -9,6 +9,7 @@ from src.services.analysis import GeminiAnalyzer
 from src.services.crawler import ContentFetcher
 from src.services.notification import NotificationService
 from src.services.storage import GitManager, HistoryManager
+from src.services.presenter import ResultsPresenter
 
 # Configure logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -25,6 +26,7 @@ async def main() -> None:
         git_service = GitManager(settings.history_file, settings.git_user_name, settings.git_user_email)
         analyzer = GeminiAnalyzer(settings.gemini_api_key)
         content_fetcher = ContentFetcher(headless=settings.headless)
+        presenter = ResultsPresenter()
     except Exception as e:
         logger.critical(f"❌ Failed to initialize services: {e}")
         sys.exit(1)
@@ -67,6 +69,7 @@ async def main() -> None:
                 candidates = await analyzer.analyze_search_page(list_content, task)
                 
                 if not candidates:
+                    logger.info("   ℹ️ No candidates found on this page.")
                     continue
 
                 logger.info(f"   ✅ Agent selected {len(candidates)} candidates.")
@@ -97,20 +100,25 @@ async def main() -> None:
                 results = await analyzer.analyze_batch(task.search_query, ads_to_analyze)
 
                 if results:
+                    confirmed_hits = []
                     for res in results:
                         if res.found_item:
                             logger.info(f"      🎉 MATCH! {res.item_name} - {res.price}")
                             notification_service.notify_match(res.item_name, res.price, res.url)
+                            confirmed_hits.append(res)
                             found_something_new = True
                         else:
                             logger.info(f"      ❌ Skip: {res.item_name} ({res.reasoning})")
+                    
+                    # Save verified hits
+                    presenter.save_results(confirmed_hits, task.name)
 
             logger.info(f"✨ Task '{task.name}' finished.")
 
     storage_service.save(seen_urls)
     
     if found_something_new and settings.ci_mode:
-        git_service.commit_and_push("update: seen items")
+        git_service.commit_and_push("update: seen items and results")
 
     logger.info("💤 Scraper finished successfully.")
 

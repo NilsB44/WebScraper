@@ -144,7 +144,7 @@ class GeminiAnalyzer:
 
         Here is the text content of a search result page:
         --------------------------------------------------
-        {content[:30000]}
+        {content[:150000]}
         --------------------------------------------------
 
         INSTRUCTIONS:
