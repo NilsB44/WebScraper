@@ -60,32 +60,30 @@ class GitManager:
         except subprocess.CalledProcessError:
             return False
 
-    def commit_and_push(self, message: str) -> None:
+    def commit_and_push(self, message: str, branch: str = "main") -> None:
         if not self.has_changes():
             logger.info("No changes to commit.")
             return
 
-        logger.info("[GIT] Committing changes to Git...")
+        logger.info(f"[GIT] Committing changes to branch {branch}...")
         # Configure local user
         self._run_git_command(["config", "user.name", self.user_name])
         self._run_git_command(["config", "user.email", self.user_email])
 
-        # Ensure we are on a branch and up to date
-        self._run_git_command(["fetch", "origin"])
+        # Ensure branch exists and is checked out
+        self._run_git_command(["checkout", "-B", branch])
 
         if self._run_git_command(["add", "."]):
             if self._run_git_command(["commit", "-m", message]):
-                # Try to push, if it fails due to being behind, try to pull rebase and push again
-                if not self._run_git_command(["push"]):
-                    logger.warning("   ⚠️ Push failed, trying pull --rebase...")
-                    self._run_git_command(["pull", "--rebase", "origin", "main"])
-                    if self._run_git_command(["push"]):
-                        logger.info("[GIT] History updated and pushed after rebase.")
-                    else:
-                        logger.error("❌ Failed to push changes even after rebase.")
+                # Try to push
+                if not self._run_git_command(["push", "origin", branch, "--force"]):
+                    logger.error(f"❌ Failed to push changes to {branch}.")
                 else:
-                    logger.info("[GIT] History updated and pushed to repo.")
+                    logger.info(f"[GIT] Results pushed to branch: {branch}")
             else:
                 logger.error("❌ Failed to commit changes.")
         else:
             logger.error("❌ Failed to stage changes.")
+
+        # Switch back to main if we were on it (optional, but good for local runs)
+        self._run_git_command(["checkout", "main"])
