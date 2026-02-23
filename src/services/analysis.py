@@ -31,6 +31,7 @@ class GeminiAnalyzer:
         "ebay.de": "https://www.ebay.de/sch/i.html?_nkw={q}",
         "dba.dk": "https://www.dba.dk/soeg/?soeg={q}",
         "finn.no": "https://www.finn.no/bap/forsale/search.html?q={q}",
+        "hifishark.com": "https://www.hifishark.com/search?q={q}",
     }
 
     def __init__(self, api_key: str):
