@@ -49,7 +49,8 @@ class ContentFetcher:
             logger.warning(f"   ⚠️ Crawler failed for {url}: {e}")
 
         # Method 2: Requests Fallback
-        if any(domain in url for domain in ["blocket.se", "finn.no", "kleinanzeigen.de", "hifishark.com", "tradera.com"]):
+        domains = ["blocket.se", "finn.no", "kleinanzeigen.de", "hifishark.com", "tradera.com"]
+        if any(domain in url for domain in domains):
             logger.info("   ⚠️ Trying requests fallback...")
             return self._fetch_with_requests(url)
 
