@@ -19,30 +19,37 @@ class ContentFetcher:
         )
         self.run_config = CrawlerRunConfig(
             cache_mode=CacheMode.BYPASS,
-            wait_until="domcontentloaded",  # More resilient for some sites
-            delay_before_return_html=5.0,
+            wait_until="networkidle",
+            delay_before_return_html=10.0,  # Increased delay
             magic=True,
+            remove_overlay_elements=True,
+            page_timeout=60000,
         )
 
     async def fetch_ad_content(self, crawler: AsyncWebCrawler, url: str) -> str | None:
         logger.info(f"📥 Fetching content: {url}")
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(2)
 
         try:
             # Wrap in timeout just in case
-            result = await asyncio.wait_for(crawler.arun(url=url, config=self.run_config), timeout=45.0)
+            result = await asyncio.wait_for(crawler.arun(url=url, config=self.run_config), timeout=70.0)
             extracted_content = cast(str | None, result.markdown or result.html)
 
             if extracted_content and len(extracted_content) > 300:
-                return extracted_content[:MAX_CONTENT_LENGTH]
+                # Check if we got actual results (not just placeholders)
+                placeholders = ["loading...", "wait a moment", "checking your browser"]
+                if not any(p in extracted_content.lower() for p in placeholders):
+                    return extracted_content[:MAX_CONTENT_LENGTH]
+                else:
+                    logger.warning(f"   ⚠️ Detected placeholder content for {url}")
         except TimeoutError:
             logger.warning(f"   ⏱️ Timeout fetching {url}")
         except Exception as e:
             logger.warning(f"   ⚠️ Crawler failed for {url}: {e}")
 
         # Method 2: Requests Fallback
-        if any(domain in url for domain in ["blocket.se", "finn.no", "kleinanzeigen.de"]):
+        if any(domain in url for domain in ["blocket.se", "finn.no", "kleinanzeigen.de", "hifishark.com", "tradera.com"]):
             logger.info("   ⚠️ Trying requests fallback...")
             return self._fetch_with_requests(url)
 

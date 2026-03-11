@@ -96,8 +96,9 @@ async def main() -> None:
 
             # D. Batch Verify
             if ads_to_analyze:
-                logger.info(f"   🧠 Verifying {len(ads_to_analyze)} candidates...")
-                results = await analyzer.analyze_batch(task.search_query, ads_to_analyze)
+                item_label = task.name if task.search_query.startswith("http") else task.search_query
+                logger.info(f"   🧠 Verifying {len(ads_to_analyze)} candidates for {item_label}...")
+                results = await analyzer.analyze_batch(item_label, ads_to_analyze)
 
                 confirmed_hits = []
                 if results:
