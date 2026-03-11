@@ -39,10 +39,11 @@ class GeminiAnalyzer:
             raise ValueError("GEMINI_API_KEY is missing!")
         self.client = genai.Client(api_key=api_key)
 
-    def _sanitize_input(self, text: str, max_length: int = 200) -> str:
+    def _sanitize_input(self, text: str, max_length: int = 500) -> str:
         if not text:
             return ""
-        clean = re.sub(r"[^a-zA-Z0-9\s&+/.,!?()@#$€£kr-]", "", text)
+        # Allow more characters, especially for non-latin or special symbols in ads
+        clean = re.sub(r"[^a-zA-Z0-9\s&+/.,!?()@#$€£kr\-äöåÄÖÅéèáàüß]", "", text)
         clean = clean.replace("---", " - ")
         return clean[:max_length].strip()
 
@@ -138,26 +139,33 @@ class GeminiAnalyzer:
 
         prompt = f"""
         I am looking for: {task.search_query}
-        {task.description}
+        Description/Context: {task.description}
         {price_instruction}
 
-        Here is the text content of a search result page:
+        Below is the text content from a search results page.
+        Your goal is to extract ALL potential matches for the search query.
+
+        PAGE CONTENT:
         --------------------------------------------------
         {content[:150000]}
         --------------------------------------------------
 
         INSTRUCTIONS:
-        1. Identify items in the list that match my search query or are relevant variations.
-        2. Ignore "Wanted" or "Buying" ads.
-        3. Ignore obvious accessories unless query implies otherwise.
-        4. {price_instruction}
-        5. Return a JSON list of candidates. Confidence 0-100.
+        1. List candidates that are for sale (Ignore 'Wanted', 'Looking for', 'Sold', or 'Bought').
+        2. Extract the URL (may be relative), the Title, and the Price.
+        3. Assign a confidence score (0-100) based on how well it matches "{task.search_query}".
+        4. If the page explicitly says 'No results' or similar, return an empty list.
+        5. Focus on the main result list, skip sidebar 'sponsored' ads if they are irrelevant.
+        6. {price_instruction}
+
+        Return exactly a JSON object with a 'candidates' list.
         """
 
         response = await self.generate_content_safe(prompt, SearchPageAnalysis)
         if response and response.parsed:
             candidates = cast(list[CandidateItem], response.parsed.candidates)
-            return [c for c in candidates if c.confidence_score > 60]
+            # Relaxed confidence score to 50 for broader initial selection
+            return [c for c in candidates if c.confidence_score >= 50]
 
         return []
 
@@ -169,7 +177,7 @@ class GeminiAnalyzer:
         prompt = f"I am looking for: {sanitized_item}\n\nHere are {len(ads)} advertisements to check:\n\n"
         for i, ad in enumerate(ads):
             clean_url = self._sanitize_input(ad["url"], max_length=500)
-            clean_content = self._sanitize_input(ad["content"], max_length=2000)
+            clean_content = self._sanitize_input(ad["content"], max_length=5000)
             prompt += f"--- AD #{i + 1} ({ad['site']}) ---\nURL: {clean_url}\nCONTENT: {clean_content}\n\n"
 
         prompt += """
