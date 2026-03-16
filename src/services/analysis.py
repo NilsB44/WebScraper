@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class GeminiAnalyzer:
     # Maintainable search URL templates
     SEARCH_TEMPLATES: dict[str, str] = {
-        "blocket.se": "https://www.blocket.se/annonser/hela_sverige?q={q}",
+        "blocket.se": "https://www.blocket.se/recommerce/forsale/search?q={q}",
         "tradera.com": "https://www.tradera.com/search?q={q}",
         "kleinanzeigen.de": "https://www.kleinanzeigen.de/s-suchanfrage.html?keywords={q}",
         "hifitorget.se": "https://hifitorget.se/index.php?mod=search&searchstring={q}",

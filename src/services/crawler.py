@@ -31,6 +31,8 @@ class ContentFetcher:
 
         await asyncio.sleep(2)
 
+        # Method 2: Crawl4AI (Browser) for complex sites
+        await asyncio.sleep(2)
         try:
             # Wrap in timeout just in case
             result = await asyncio.wait_for(crawler.arun(url=url, config=self.run_config), timeout=70.0)
