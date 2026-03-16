@@ -29,13 +29,7 @@ class ContentFetcher:
     async def fetch_ad_content(self, crawler: AsyncWebCrawler, url: str) -> str | None:
         logger.info(f"📥 Fetching content: {url}")
 
-        # Method 1: Requests for known sites that block browser-based scraping or are simpler
-        fast_sites = ["blocket.se", "finn.no", "kleinanzeigen.de", "hifishark.com", "hifitorget.se"]
-        if any(domain in url for domain in fast_sites):
-            logger.info(f"   ⚡ Using requests for {url}")
-            content = self._fetch_with_requests(url)
-            if content and len(content) > 500:
-                return content[:MAX_CONTENT_LENGTH]
+        await asyncio.sleep(2)
 
         # Method 2: Crawl4AI (Browser) for complex sites
         await asyncio.sleep(2)
@@ -56,8 +50,13 @@ class ContentFetcher:
         except Exception as e:
             logger.warning(f"   ⚠️ Crawler failed for {url}: {e}")
 
-        # Final Fallback
-        return self._fetch_with_requests(url)
+        # Method 2: Requests Fallback
+        domains = ["blocket.se", "finn.no", "kleinanzeigen.de", "hifishark.com", "tradera.com"]
+        if any(domain in url for domain in domains):
+            logger.info("   ⚠️ Trying requests fallback...")
+            return self._fetch_with_requests(url)
+
+        return None
 
     def _fetch_with_requests(self, url: str) -> str | None:
         try:

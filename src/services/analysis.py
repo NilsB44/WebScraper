@@ -142,8 +142,8 @@ class GeminiAnalyzer:
         Description/Context: {task.description}
         {price_instruction}
 
-        Below is the text content from a search results page. 
-        Your goal is to extract ALL potential candidate items that match or are highly relevant variations of the search query.
+        Below is the text content from a search results page.
+        Your goal is to extract ALL potential matches for the search query.
 
         PAGE CONTENT:
         --------------------------------------------------
