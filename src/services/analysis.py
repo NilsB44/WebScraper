@@ -17,6 +17,7 @@ from src.models import (
     SearchPageSource,
     SearchURLGenerator,
 )
+from src.utils.usage_tracker import UsageTracker
 
 logger = logging.getLogger(__name__)
 
@@ -70,9 +71,12 @@ class GeminiAnalyzer:
                         "response_schema": schema,
                     },
                 )
+                UsageTracker.log_use(model=model)
                 return response
             except Exception as e:
+                UsageTracker.log_use(model=model, calls=1)  # Log the attempt even if it fails
                 err = str(e).lower()
+
                 if any(x in err for x in ["429", "quota", "503", "overload"]):
                     logger.warning(f"   [QUOTA] {model} overloaded. Retrying with next model...")
                     continue
