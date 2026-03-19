@@ -157,10 +157,12 @@ class GeminiAnalyzer:
         INSTRUCTIONS:
         1. List candidates that are for sale (Ignore 'Wanted', 'Looking for', 'Sold', or 'Bought').
         2. Extract the URL (may be relative), the Title, and the Price.
-        3. Assign a confidence score (0-100) based on how well it matches "{task.search_query}".
-        4. If the page explicitly says 'No results' or similar, return an empty list.
-        5. Focus on the main result list, skip sidebar 'sponsored' ads if they are irrelevant.
-        6. {price_instruction}
+        3. Search for patterns like 'kr', 'EUR', '€', '£', or 'Price:' to find item entries.
+        4. Assign a confidence score (0-100) based on how well it matches "{task.search_query}".
+        5. If the page explicitly says 'No results' or similar, return an empty list.
+        6. Focus on the main result list, skip sidebar 'sponsored' ads if they are irrelevant.
+        7. If you see multiple items, list them all.
+        8. {price_instruction}
 
         Return exactly a JSON object with a 'candidates' list.
         """
