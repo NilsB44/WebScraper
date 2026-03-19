@@ -7,4 +7,5 @@ jobs:
       contents: read
       pull-requests: write
     uses: NilsB44/infra/.github/workflows/reviewer.yml@main
-    secrets: inherit
+    secrets:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
