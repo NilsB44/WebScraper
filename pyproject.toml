@@ -47,7 +47,7 @@ select = [
     "UP",  # pyupgrade (upgrades syntax to newer python versions)
     "SIM", # flake8-simplify
 ]
-ignore = []
+ignore = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"
