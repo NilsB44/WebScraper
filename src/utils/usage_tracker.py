@@ -18,7 +18,7 @@ class UsageTracker:
         data: dict[str, list[dict[str, Any]]] = {}
         if os.path.exists(USAGE_FILE):
             try:
-                with open(USAGE_FILE, "r") as f:
+                with open(USAGE_FILE) as f:
                     data = json.load(f)
             except Exception:
                 data = {}

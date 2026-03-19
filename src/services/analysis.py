@@ -17,7 +17,6 @@ from src.models import (
     SearchPageSource,
     SearchURLGenerator,
 )
-
 from src.utils.usage_tracker import UsageTracker
 
 logger = logging.getLogger(__name__)
@@ -64,7 +63,7 @@ class GeminiAnalyzer:
                 delay = (i * 5) + 2
                 await asyncio.sleep(delay)
 
-                response = await self.client.models.generate_content(
+                response = await self.client.aio.models.generate_content(
                     model=model,
                     contents=prompt,
                     config={
