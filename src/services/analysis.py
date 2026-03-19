@@ -18,6 +18,8 @@ from src.models import (
     SearchURLGenerator,
 )
 
+from src.utils.usage_tracker import UsageTracker
+
 logger = logging.getLogger(__name__)
 
 
@@ -62,7 +64,7 @@ class GeminiAnalyzer:
                 delay = (i * 5) + 2
                 await asyncio.sleep(delay)
 
-                response = await self.client.aio.models.generate_content(
+                response = await self.client.models.generate_content(
                     model=model,
                     contents=prompt,
                     config={
@@ -70,9 +72,12 @@ class GeminiAnalyzer:
                         "response_schema": schema,
                     },
                 )
+                UsageTracker.log_use(model=model)
                 return response
             except Exception as e:
+                UsageTracker.log_use(model=model, calls=1)  # Log the attempt even if it fails
                 err = str(e).lower()
+
                 if any(x in err for x in ["429", "quota", "503", "overload"]):
                     logger.warning(f"   [QUOTA] {model} overloaded. Retrying with next model...")
                     continue
