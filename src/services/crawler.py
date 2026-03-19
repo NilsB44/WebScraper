@@ -20,10 +20,11 @@ class ContentFetcher:
         self.run_config = CrawlerRunConfig(
             cache_mode=CacheMode.BYPASS,
             wait_until="networkidle",
-            delay_before_return_html=10.0,  # Increased delay
+            delay_before_return_html=10.0,
             magic=True,
             remove_overlay_elements=True,
-            page_timeout=60000,
+            page_timeout=90000,  # Increased to 90s
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         )
 
     async def fetch_ad_content(self, crawler: AsyncWebCrawler, url: str) -> str | None:
