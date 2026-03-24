@@ -30,10 +30,7 @@ class ContentFetcher:
     async def fetch_ad_content(self, crawler: AsyncWebCrawler, url: str) -> str | None:
         logger.info(f"📥 Fetching content: {url}")
 
-        await asyncio.sleep(2)
-
-        # Method 2: Crawl4AI (Browser) for complex sites
-        await asyncio.sleep(2)
+        # Method 1: Crawl4AI (Browser) for complex sites
         try:
             # Wrap in timeout just in case
             result = await asyncio.wait_for(crawler.arun(url=url, config=self.run_config), timeout=70.0)
@@ -84,7 +81,31 @@ class ContentFetcher:
 
     @staticmethod
     def is_valid_ad_link(href: str) -> bool:
-        if len(href) < 15:
+        if not href or len(href) < 15:
             return False
-        keywords = ["/annons/", "/item/", "/s-anzeige/", "/advert/", "/itm/", "id="]
-        return any(x in href for x in keywords)
+        
+        # 1. Mandatory keywords that strongly imply an item page
+        item_keywords = [
+            "/annons/", "/item/", "/s-anzeige/", "/advert/", "/itm/", "id=", 
+            "visa_annons", "/bap/forsale/ad.html", "model/", "products/"
+        ]
+        if any(x in href for x in item_keywords):
+            return True
+        
+        # 2. Exclude common non-ad pages even if they contain domain names
+        exclude_patterns = [
+            "/search", "soeg/?", "sok=?", "/annonser/", "/search.html", "?q="
+        ]
+        if any(x in href for x in exclude_patterns):
+            return False
+
+        # 3. Allow absolute URLs that might be external hits from meta-search sites
+        # But only if they contain at least one of the item keywords or look like a product page
+        # (e.g. they have a long numerical ID or slug)
+        known_domains = ["blocket.se", "tradera.com", "hifishark.com", "ebay.de", "kleinanzeigen.de", "dba.dk", "finn.no"]
+        if href.startswith("http") and any(domain in href for domain in known_domains):
+            # Check for digits in the URL (often a sign of an ID)
+            if any(char.isdigit() for char in href.split("/")[-1]):
+                 return True
+            
+        return False

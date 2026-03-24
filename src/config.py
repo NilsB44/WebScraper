@@ -35,6 +35,8 @@ class Settings(BaseSettings):
             "hifitorget.se",
             "kleinanzeigen.de",
             "ebay.de",
+            "ebay.com",
+            "willhaben.at",
             "dba.dk",
             "finn.no",
             "hifishark.com",

@@ -25,10 +25,10 @@ logger = logging.getLogger(__name__)
 class GeminiAnalyzer:
     # Maintainable search URL templates
     SEARCH_TEMPLATES: dict[str, str] = {
-        "blocket.se": "https://www.blocket.se/recommerce/forsale/search?q={q}",
+        "blocket.se": "https://www.blocket.se/annonser/hela_sverige?q={q}",
         "tradera.com": "https://www.tradera.com/search?q={q}",
         "kleinanzeigen.de": "https://www.kleinanzeigen.de/s-suchanfrage.html?keywords={q}",
-        "hifitorget.se": "https://hifitorget.se/index.php?mod=search&searchstring={q}",
+        "hifitorget.se": "https://hifitorget.se/?sok={q}",
         "ebay.de": "https://www.ebay.de/sch/i.html?_nkw={q}",
         "dba.dk": "https://www.dba.dk/soeg/?soeg={q}",
         "finn.no": "https://www.finn.no/bap/forsale/search.html?q={q}",
@@ -148,6 +148,7 @@ class GeminiAnalyzer:
 
         Below is the text content from a search results page.
         Your goal is to extract ALL potential matches for the search query.
+        Be aggressive in finding links - if it looks like a product title or a link to an ad, include it.
 
         PAGE CONTENT:
         --------------------------------------------------
@@ -156,12 +157,12 @@ class GeminiAnalyzer:
 
         INSTRUCTIONS:
         1. List candidates that are for sale (Ignore 'Wanted', 'Looking for', 'Sold', or 'Bought').
-        2. Extract the URL (may be relative), the Title, and the Price.
+        2. Extract the URL (IMPORTANT: can be absolute or relative), the Title, and the Price.
         3. Search for patterns like 'kr', 'EUR', '€', '£', or 'Price:' to find item entries.
         4. Assign a confidence score (0-100) based on how well it matches "{task.search_query}".
         5. If the page explicitly says 'No results' or similar, return an empty list.
         6. Focus on the main result list, skip sidebar 'sponsored' ads if they are irrelevant.
-        7. If you see multiple items, list them all.
+        7. If you see multiple items, list them all. Even if they are slightly different models, if they match the general description, include them.
         8. {price_instruction}
 
         Return exactly a JSON object with a 'candidates' list.
