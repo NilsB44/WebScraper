@@ -8,9 +8,9 @@ from src.config import settings
 from src.services.analysis import GeminiAnalyzer
 from src.services.crawler import ContentFetcher
 from src.services.notification import NotificationService
+from src.services.orchestrator import ScraperOrchestrator
 from src.services.presenter import ResultsPresenter
 from src.services.storage import GitManager, HistoryManager
-from src.services.orchestrator import ScraperOrchestrator
 
 # Configure logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -28,7 +28,7 @@ async def main() -> None:
         analyzer = GeminiAnalyzer(settings.gemini_api_key)
         content_fetcher = ContentFetcher(headless=settings.headless)
         presenter = ResultsPresenter()
-        
+
         orchestrator = ScraperOrchestrator(
             analyzer=analyzer,
             content_fetcher=content_fetcher,

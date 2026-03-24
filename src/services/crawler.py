@@ -83,15 +83,15 @@ class ContentFetcher:
     def is_valid_ad_link(href: str) -> bool:
         if not href or len(href) < 15:
             return False
-        
+
         # 1. Mandatory keywords that strongly imply an item page
         item_keywords = [
-            "/annons/", "/item/", "/s-anzeige/", "/advert/", "/itm/", "id=", 
+            "/annons/", "/item/", "/s-anzeige/", "/advert/", "/itm/", "id=",
             "visa_annons", "/bap/forsale/ad.html", "model/", "products/"
         ]
         if any(x in href for x in item_keywords):
             return True
-        
+
         # 2. Exclude common non-ad pages even if they contain domain names
         exclude_patterns = [
             "/search", "soeg/?", "sok=?", "/annonser/", "/search.html", "?q="
@@ -103,9 +103,11 @@ class ContentFetcher:
         # But only if they contain at least one of the item keywords or look like a product page
         # (e.g. they have a long numerical ID or slug)
         known_domains = ["blocket.se", "tradera.com", "hifishark.com", "ebay.de", "kleinanzeigen.de", "dba.dk", "finn.no"]
-        if href.startswith("http") and any(domain in href for domain in known_domains):
-            # Check for digits in the URL (often a sign of an ID)
-            if any(char.isdigit() for char in href.split("/")[-1]):
-                 return True
-            
+        if (
+            href.startswith("http")
+            and any(domain in href for domain in known_domains)
+            and any(char.isdigit() for char in href.split("/")[-1])
+        ):
+            return True
+
         return False

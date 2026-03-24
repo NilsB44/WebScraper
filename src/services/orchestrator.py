@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+
 from crawl4ai import AsyncWebCrawler  # type: ignore
 
 from src.models import ScrapeTask, SearchPageSource
@@ -67,7 +67,7 @@ class ScraperOrchestrator:
             # C. Deep Dive
             for cand in candidates:
                 full_url = self.content_fetcher.fix_relative_url(source.search_url, cand.url)
-                
+
                 if full_url in seen_urls:
                     continue
 

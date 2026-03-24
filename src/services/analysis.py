@@ -71,7 +71,15 @@ class GeminiAnalyzer:
                         "response_schema": schema,
                     },
                 )
-                UsageTracker.log_use(model=model)
+
+                # Extract token usage
+                tokens_in = 0
+                tokens_out = 0
+                if response.usage_metadata:
+                    tokens_in = response.usage_metadata.prompt_token_count or 0
+                    tokens_out = response.usage_metadata.candidates_token_count or 0
+
+                UsageTracker.log_use(model=model, tokens_in=tokens_in, tokens_out=tokens_out)
                 return response
             except Exception as e:
                 UsageTracker.log_use(model=model, calls=1)  # Log the attempt even if it fails
