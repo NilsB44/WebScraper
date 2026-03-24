@@ -21,20 +21,10 @@ class Settings(BaseSettings):
     # Tasks
     tasks: list[ScrapeTask] = [
         ScrapeTask(
-            name="XTZ Subwoofer", search_query="XTZ 12.17 Edge Subwoofer", description="Find high-end subwoofers."
-        ),
-        ScrapeTask(
-            name="Bull Sculpture",
-            search_query="Fighting bull sculpture",
-            max_price=2000,
-            currency="SEK",
-            description="Find bull sculptures/statues under 2000 SEK.",
+            name="XTZ Subwoofer",
+            search_query="XTZ Subwoofer",
+            description="Find any XTZ subwoofers (e.g., 10.17, 12.17, Edge, Cinema series).",
             fuzzy_search=True,
-        ),
-        ScrapeTask(
-            name="Confirmed XTZ Hit",
-            search_query="https://www.hifishark.com/model/xtz-sub-12-17-edge",
-            description="DIRECT URL for testing. Extract items from this page.",
         ),
     ]
 
@@ -45,6 +35,8 @@ class Settings(BaseSettings):
             "hifitorget.se",
             "kleinanzeigen.de",
             "ebay.de",
+            "ebay.com",
+            "willhaben.at",
             "dba.dk",
             "finn.no",
             "hifishark.com",
