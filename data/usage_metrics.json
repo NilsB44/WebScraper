@@ -1,0 +1,28 @@
+{
+  "2026-05-05": [
+    {
+      "model": "gemini-2.0-flash",
+      "calls": 12,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "model": "gemini-1.5-flash",
+      "calls": 12,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "model": "gemini-1.5-flash-8b",
+      "calls": 12,
+      "tokens_in": 0,
+      "tokens_out": 0
+    },
+    {
+      "model": "gemini-1.5-pro",
+      "calls": 12,
+      "tokens_in": 0,
+      "tokens_out": 0
+    }
+  ]
+}
